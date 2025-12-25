@@ -52,18 +52,19 @@ Route::middleware('auth')->group(function () {
     });
     
     // Inputter Routes
-    Route::middleware('role:inputter|super_admin')->prefix('inputter')->group(function () {
+    Route::middleware('role:inputter|super_admin')->prefix('inputter')->name('inputter.')->group(function () {
         Route::get('/dashboard', function () {
             return view('inputter.dashboard');
-        })->name('inputter.dashboard');
+        })->name('dashboard');
         
         // Securities Management (Inputter can create/edit)
+        // inputter.securities.index, create, store, show, edit, update
         Route::resource('securities', SecurityController::class)->except(['destroy']);
         
         // My Submissions
         Route::get('/my-submissions', function () {
             return view('inputter.submissions');
-        })->name('inputter.submissions');
+        })->name('submissions');
     });
     
     // Authoriser Routes
