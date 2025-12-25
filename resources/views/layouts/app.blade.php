@@ -178,6 +178,12 @@
                         Auction Results
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('search.advanced') }}" class="{{ request()->routeIs('search.advanced') ? 'active' : '' }}">
+                        <i class="bi bi-sliders"></i>
+                        Advanced Search
+                    </a>
+                </li>
                 @endcan
 
                 @can('create-securities')

@@ -41,4 +41,47 @@ class SearchController extends Controller
 
         return view('search.results', compact('securities', 'auctions', 'query'));
     }
+
+    public function advanced(Request $request)
+    {
+        $hasSearch = $request->anyFilled(['keyword', 'product_type_id', 'date_from', 'date_to', 'status']);
+        $results = collect();
+
+        if ($hasSearch) {
+             $query = Security::query()->with('productType');
+             
+             if ($request->filled('keyword')) {
+                 $k = $request->input('keyword');
+                 $query->where(function($q) use ($k) {
+                     $q->where('security_name', 'like', "%{$k}%")
+                       ->orWhere('isin', 'like', "%{$k}%")
+                       ->orWhere('issuer', 'like', "%{$k}%");
+                 });
+             }
+             
+             if ($request->filled('product_type_id')) {
+                 $query->where('product_type_id', $request->input('product_type_id'));
+             }
+             
+             if ($request->filled('date_from')) {
+                 $query->whereDate('issue_date', '>=', $request->input('date_from'));
+             }
+             
+             if ($request->filled('date_to')) {
+                 $query->whereDate('issue_date', '<=', $request->input('date_to'));
+             }
+             
+             if ($request->filled('status')) {
+                 $query->where('status', $request->input('status'));
+             }
+             
+             $results = $query->latest('issue_date')->paginate(20)->withQueryString();
+        }
+
+        return view('search.advanced', [
+            'results' => $results,
+            'productTypes' => \App\Models\ProductType::all(),
+            'hasSearch' => $hasSearch
+        ]);
+    }
 }

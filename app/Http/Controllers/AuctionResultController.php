@@ -8,6 +8,7 @@ use App\Http\Requests\StoreAuctionResultRequest;
 use App\Http\Requests\UpdateAuctionResultRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AuctionResultController extends Controller
 {
@@ -115,5 +116,18 @@ class AuctionResultController extends Controller
         $auctionResult->delete();
         return redirect()->route('auction-results.index')
             ->with('success', 'Auction Result deleted successfully.');
+    }
+
+    public function exportExcel()
+    {
+        return Excel::download(new \App\Exports\AuctionResultsExport, 'auction-results-' . date('Y-m-d') . '.xlsx');
+    }
+
+    public function exportPdf()
+    {
+        $auctionResults = AuctionResult::with('security')->latest('auction_date')->get();
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('auction_results.pdf', compact('auctionResults'));
+        $pdf->setPaper('a4', 'landscape');
+        return $pdf->download('auction-results-' . date('Y-m-d') . '.pdf');
     }
 }

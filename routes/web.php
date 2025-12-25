@@ -108,6 +108,11 @@ Route::middleware('auth')->group(function () {
         
         // Global Search
         Route::get('/search', [\App\Http\Controllers\SearchController::class, 'index'])->name('search.index');
+        Route::get('/search/advanced', [\App\Http\Controllers\SearchController::class, 'advanced'])->name('search.advanced');
+        
+        // Export Auction Results
+        Route::get('/auction-results/export/excel', [AuctionResultController::class, 'exportExcel'])->name('auction-results.export.excel');
+        Route::get('/auction-results/export/pdf', [AuctionResultController::class, 'exportPdf'])->name('auction-results.export.pdf');
     });
     
     // Import (Inputter and Super Admin only)

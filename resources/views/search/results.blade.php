@@ -6,7 +6,10 @@
 <div class="container-fluid">
     <div class="mb-4">
         <h1 class="h3 text-gray-800">Search Results</h1>
-        <p class="text-muted">Showing results for: <strong>"{{ $query }}"</strong></p>
+        <p class="text-muted">
+            Showing results for: <strong>"{{ $query }}"</strong>
+            <a href="{{ route('search.advanced') }}" class="ms-3 text-decoration-none"><i class="bi bi-sliders me-1"></i>Advanced Search</a>
+        </p>
     </div>
 
     @if($securities->isEmpty() && $auctions->isEmpty())
