@@ -6,6 +6,8 @@ use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\AuctionResultController;
 use App\Http\Controllers\Authoriser\PendingActionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\ProductTypeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,25 +33,24 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Super Admin Routes
-    Route::middleware('role:super_admin')->prefix('admin')->group(function () {
+    Route::middleware('role:super_admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', function () {
-            return view('admin.dashboard');
-        })->name('admin.dashboard');
+            return view('admin.dashboard'); // Or dedicated AdminDashboardController if needed
+        })->name('dashboard');
         
         // User Management
-        Route::get('/users', function () {
-            return view('admin.users.index');
-        })->name('admin.users.index');
+        Route::resource('users', UserController::class);
+        
+        // Product Types
+        Route::resource('product-types', ProductTypeController::class)->except(['create', 'edit', 'show']);
         
         // System Settings
         Route::get('/settings', function () {
             return view('admin.settings');
-        })->name('admin.settings');
+        })->name('settings');
         
         // Audit Logs
-        Route::get('/audit-logs', function () {
-            return view('admin.audit-logs');
-        })->name('admin.audit-logs');
+        Route::get('/audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs');
     });
     
     // Inputter Routes

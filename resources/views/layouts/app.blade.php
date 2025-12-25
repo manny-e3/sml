@@ -268,6 +268,33 @@
                 </li>
                 @endcan
 
+                <!-- System Admin Menu -->
+                @role('super_admin')
+                <li class="mt-3">
+                    <div class="px-3 py-2 small text-white-50 text-uppercase fw-bold">
+                        Admin
+                    </div>
+                </li>
+                <li>
+                    <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                        <i class="bi bi-speedometer"></i>
+                        Admin Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                        <i class="bi bi-people"></i>
+                        Manage Users
+                    </a>
+                </li>
+                 <li>
+                    <a href="{{ route('admin.audit-logs') }}" class="{{ request()->routeIs('admin.audit-logs') ? 'active' : '' }}">
+                        <i class="bi bi-journal-text"></i>
+                        Audit Logs
+                    </a>
+                </li>
+                @endrole
+
                 <!-- Logout -->
                 <li class="mt-4">
                     <form method="POST" action="{{ route('logout') }}">
