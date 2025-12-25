@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\AuctionResultController;
+use App\Http\Controllers\Authoriser\PendingActionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -78,18 +79,12 @@ Route::middleware('auth')->group(function () {
         })->name('authoriser.dashboard');
         
         // Pending Approvals
-        Route::get('/pending-approvals', function () {
-            return view('authoriser.pending-approvals');
-        })->name('authoriser.pending-approvals');
+        Route::get('/pending-approvals', [PendingActionController::class, 'index'])->name('authoriser.pending-approvals');
+        Route::get('/pending-approvals/{pendingAction}', [PendingActionController::class, 'show'])->name('authoriser.pending-show');
         
         // Approve/Reject Actions
-        Route::post('/approve/{id}', function () {
-            // Approval logic
-        })->name('authoriser.approve');
-        
-        Route::post('/reject/{id}', function () {
-            // Rejection logic
-        })->name('authoriser.reject');
+        Route::post('/pending-approvals/{pendingAction}/approve', [PendingActionController::class, 'approve'])->name('authoriser.approve');
+        Route::post('/pending-approvals/{pendingAction}/reject', [PendingActionController::class, 'reject'])->name('authoriser.reject');
     });
     
     // Shared Routes (All authenticated users)

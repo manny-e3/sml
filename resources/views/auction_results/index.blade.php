@@ -44,6 +44,16 @@
         </div>
     </div>
 
+    <!-- Export Buttons -->
+    <div class="mb-3 d-flex gap-2">
+        <a href="{{ route('auction-results.export.excel') }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        <a href="{{ route('auction-results.export.pdf') }}" class="btn btn-danger">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+        </a>
+    </div>
+
     <!-- Table -->
     <div class="card shadow-sm">
         <div class="card-body p-0">

@@ -66,54 +66,33 @@ class SecurityController extends Controller
     {
         $data = $request->validated();
 
-        // Calculations
-        if (isset($data['issue_date']) && isset($data['maturity_date'])) {
-            $issue = \Carbon\Carbon::parse($data['issue_date']);
-            $maturity = \Carbon\Carbon::parse($data['maturity_date']);
-            $data['tenor'] = round($maturity->diffInYears($issue)); // Round to nearest year usually
-            
-            // TTM (Time to Maturity)
-            $today = \Carbon\Carbon::today();
-            if ($maturity->isFuture()) {
-                $daysDiff = $today->diffInDays($maturity);
-                $data['ttm'] = $daysDiff / 365; // Simple basis
-            } else {
-                $data['ttm'] = 0;
-            }
+        // Auto-calculate Tenor and TTM
+        $issueDate = \Carbon\Carbon::parse($data['issue_date']);
+        $maturityDate = \Carbon\Carbon::parse($data['maturity_date']);
+        $data['tenor'] = $maturityDate->diffInYears($issueDate);
+        $data['ttm'] = $maturityDate->diffInYears(now());
+        
+        // Auto-calculate Final Rating
+        $data['final_rating'] = ($data['rating_agency'] ?? '-') . '/' . 
+                                ($data['local_rating'] ?? '-') . '/' . 
+                                ($data['global_rating'] ?? '-');
+
+        // MAKER-CHECKER: If not Super Admin, create Pending Action
+        if (!Auth::user()->hasRole('super_admin')) {
+            PendingAction::create([
+                'action_type' => 'create',
+                'model_type' => Security::class,
+                'data' => $data,
+                'status' => 'pending',
+                'created_by' => Auth::id(),
+            ]);
+
+            return redirect()->route('securities.index')
+                ->with('success', 'Security creation submitted for approval.');
         }
 
-        // Ratings Concatenation
-        $ratings = array_filter([
-            $data['rating_agency'] ?? null,
-            $data['local_rating'] ?? null,
-            $data['global_rating'] ?? null
-        ]);
-        if (!empty($ratings)) {
-            $data['final_rating'] = implode('/', $ratings);
-        }
-
+        // Direct Save (Super Admin)
         $data['created_by'] = Auth::id();
-
-        // ---------------------------------------------------------
-        // MAKER-CHECKER LOGIC HOOK
-        // ---------------------------------------------------------
-        // If configured to use Maker-Checker, we should create a PendingAction here
-        // instead of a Security, unless the user is a Super Admin or has auto-approve rights.
-        // For Phase 5 validation, we will allow direct creation for now but mark it.
-        // To implement Maker-Checker strictly:
-        /*
-        PendingAction::create([
-            'action_type' => 'create',
-            'model_type' => Security::class,
-            'new_data' => $data,
-            'maker_id' => Auth::id(),
-            'status' => 'pending',
-            'submitted_at' => now(),
-        ]);
-        return redirect()->route('securities.index')->with('success', 'Security submitted for approval.');
-        */
-
-        // Direct Save (Verification Phase)
         $security = Security::create($data);
 
         return redirect()->route('securities.show', $security)
@@ -142,39 +121,35 @@ class SecurityController extends Controller
     public function update(UpdateSecurityRequest $request, Security $security)
     {
         $data = $request->validated();
-
-        // Re-calculations if dates changed
-        if (isset($data['issue_date']) && isset($data['maturity_date'])) {
-            $issue = \Carbon\Carbon::parse($data['issue_date']);
-            $maturity = \Carbon\Carbon::parse($data['maturity_date']);
-            $data['tenor'] = round($maturity->diffInYears($issue));
-            
-            $today = \Carbon\Carbon::today();
-            if ($maturity->isFuture()) {
-                $data['ttm'] = $today->diffInDays($maturity) / 365;
-            } else {
-                $data['ttm'] = 0;
-            }
+        
+        // Re-calculate logic if dates changed
+        if (isset($data['issue_date']) || isset($data['maturity_date'])) {
+            $issueDate = \Carbon\Carbon::parse($data['issue_date'] ?? $security->issue_date);
+            $maturityDate = \Carbon\Carbon::parse($data['maturity_date'] ?? $security->maturity_date);
+            $data['tenor'] = $maturityDate->diffInYears($issueDate);
+            $data['ttm'] = $maturityDate->diffInYears(now());
         }
         
-         // Ratings Concatenation
-        $ratings = array_filter([
-            $data['rating_agency'] ?? null,
-            $data['local_rating'] ?? null,
-            $data['global_rating'] ?? null
-        ]);
-        if (!empty($ratings)) {
-            $data['final_rating'] = implode('/', $ratings);
+        // Re-calculate Final Rating
+        $data['final_rating'] = ($data['rating_agency'] ?? $security->rating_agency) . '/' . 
+                                ($data['local_rating'] ?? $security->local_rating) . '/' . 
+                                ($data['global_rating'] ?? $security->global_rating);
+
+        // MAKER-CHECKER
+        if (!Auth::user()->hasRole('super_admin')) {
+            PendingAction::create([
+                'action_type' => 'update',
+                'model_type' => Security::class,
+                'model_id' => $security->id,
+                'data' => $data,
+                'status' => 'pending',
+                'created_by' => Auth::id(),
+            ]);
+
+            return redirect()->route('securities.index')
+                ->with('success', 'Security update submitted for approval.');
         }
 
-        $data['updated_by'] = Auth::id();
-
-        // ---------------------------------------------------------
-        // MAKER-CHECKER LOGIC HOOK
-        // ---------------------------------------------------------
-        // PendingAction::create for 'update'
-        
-        // Direct Update
         $security->update($data);
 
         return redirect()->route('securities.show', $security)
@@ -186,9 +161,22 @@ class SecurityController extends Controller
      */
     public function destroy(Security $security)
     {
-        // Maker-Checker Hook for Delete
-        
-        $security->delete(); // Soft delete
+        // MAKER-CHECKER
+        if (!Auth::user()->hasRole('super_admin')) {
+            PendingAction::create([
+                'action_type' => 'delete',
+                'model_type' => Security::class,
+                'model_id' => $security->id,
+                'data' => [],
+                'status' => 'pending',
+                'created_by' => Auth::id(),
+            ]);
+
+            return redirect()->route('securities.index')
+                ->with('success', 'Security deletion submitted for approval.');
+        }
+
+        $security->delete();
         return redirect()->route('securities.index')
             ->with('success', 'Security deleted successfully.');
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuctionResult;
 use App\Models\Security;
+use App\Models\PendingAction;
 use App\Http\Requests\StoreAuctionResultRequest;
 use App\Http\Requests\UpdateAuctionResultRequest;
 use Illuminate\Http\Request;
@@ -59,8 +60,32 @@ class AuctionResultController extends Controller
         $auctionResult = new AuctionResult($data);
         $auctionResult->calculateRatios();
         
-        // Day of week
+        // Day
         $auctionResult->day_of_week = \Carbon\Carbon::parse($data['auction_date'])->format('l');
+
+        // MAKER-CHECKER
+        if (!Auth::user()->hasRole('super_admin')) {
+            // Need to handle model attributes that were set separately like day_of_week
+            $data['day_of_week'] = $auctionResult->day_of_week;
+            $data['total_amount_sold'] = $auctionResult->total_amount_sold;
+            // Also need bid_cover_ratio etc if calculated. 
+            // Better: use $auctionResult->toArray() but remove nulls?
+            // Actually, fillable protection matters. PendingAction uses specific data.
+            // Let's rely on the $data array + calculated fields.
+            $data['bid_cover_ratio'] = $auctionResult->bid_cover_ratio;
+            $data['subscription_level'] = $auctionResult->subscription_level;
+
+            PendingAction::create([
+                'action_type' => 'create',
+                'model_type' => AuctionResult::class,
+                'data' => $data,
+                'status' => 'pending',
+                'created_by' => Auth::id(),
+            ]);
+
+            return redirect()->route('auction-results.index')
+                ->with('success', 'Auction Result recording submitted for approval.');
+        }
         
         $auctionResult->created_by = Auth::id();
         $auctionResult->save();
@@ -100,6 +125,27 @@ class AuctionResultController extends Controller
         $auctionResult->fill($data);
         $auctionResult->calculateRatios();
         $auctionResult->day_of_week = \Carbon\Carbon::parse($data['auction_date'])->format('l');
+        
+        // MAKER-CHECKER
+        if (!Auth::user()->hasRole('super_admin')) {
+             $data['day_of_week'] = $auctionResult->day_of_week;
+             $data['total_amount_sold'] = $auctionResult->total_amount_sold;
+             $data['bid_cover_ratio'] = $auctionResult->bid_cover_ratio;
+             $data['subscription_level'] = $auctionResult->subscription_level;
+
+            PendingAction::create([
+                'action_type' => 'update',
+                'model_type' => AuctionResult::class,
+                'model_id' => $auctionResult->id,
+                'data' => $data,
+                'status' => 'pending',
+                'created_by' => Auth::id(),
+            ]);
+
+            return redirect()->route('auction-results.index')
+                ->with('success', 'Auction Result update submitted for approval.');
+        }
+
         $auctionResult->updated_by = Auth::id();
         
         $auctionResult->save();
