@@ -3,98 +3,157 @@
 @section('title', 'Inputter Dashboard')
 
 @section('nav-links')
-    <a href="{{ route('inputter.dashboard') }}" class="inline-flex items-center border-b-2 border-primary-500 px-1 pt-1 text-sm font-medium text-gray-900">
-        Dashboard
-    </a>
-    <a href="#" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-        Securities
-    </a>
-    <a href="#" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-        Auction Results
-    </a>
-    <a href="#" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
-        My Submissions
-    </a>
+    <li class="nav-item">
+        <a class="nav-link active" href="{{ route('inputter.dashboard') }}">
+            <i class="bi bi-speedometer2 me-1"></i>Dashboard
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="bi bi-file-earmark-text me-1"></i>Securities
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="bi bi-clipboard-data me-1"></i>Auction Results
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="#">
+            <i class="bi bi-folder me-1"></i>My Submissions
+        </a>
+    </li>
 @endsection
 
 @section('header')
-    <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-900">Inputter Dashboard</h1>
-        <div class="text-sm text-gray-500">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0 fw-bold">Inputter Dashboard</h2>
+        <small class="text-muted">
             Last login: {{ Auth::user()->last_login_at ? Auth::user()->last_login_at->diffForHumans() : 'First time' }}
-        </div>
+        </small>
     </div>
 @endsection
 
 @section('content')
     <!-- Stats Overview -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow border border-gray-200 sm:p-6">
-            <dt class="truncate text-sm font-medium text-gray-500">My Submissions</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">0</dd>
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">My Submissions</p>
+                            <h3 class="mb-0 fw-bold">0</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-file-earmark-text fs-3 text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow border border-gray-200 sm:p-6">
-            <dt class="truncate text-sm font-medium text-gray-500">Pending Approval</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-yellow-600">0</dd>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">Pending Approval</p>
+                            <h3 class="mb-0 fw-bold text-warning">0</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-clock-history fs-3 text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow border border-gray-200 sm:p-6">
-            <dt class="truncate text-sm font-medium text-gray-500">Approved</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-green-600">0</dd>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">Approved</p>
+                            <h3 class="mb-0 fw-bold text-success">0</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-check-circle fs-3 text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow border border-gray-200 sm:p-6">
-            <dt class="truncate text-sm font-medium text-gray-500">Rejected</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-red-600">0</dd>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">Rejected</p>
+                            <h3 class="mb-0 fw-bold text-danger">0</h3>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 p-3 rounded">
+                            <i class="bi bi-x-circle fs-3 text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="mb-8">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <a href="#" class="relative block rounded-lg border-2 border-dashed border-gray-300 p-6 text-center hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                <span class="mt-2 block text-sm font-medium text-gray-900">Add Security</span>
-            </a>
+    <div class="mb-4">
+        <h5 class="mb-3 fw-bold">Quick Actions</h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <a href="#" class="text-decoration-none">
+                    <div class="card border-2 border-dashed h-100 text-center">
+                        <div class="card-body d-flex flex-column justify-content-center py-4">
+                            <i class="bi bi-plus-circle fs-1 text-primary mb-2"></i>
+                            <p class="mb-0 fw-semibold">Add Security</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
 
-            <a href="#" class="relative block rounded-lg border-2 border-dashed border-gray-300 p-6 text-center hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <span class="mt-2 block text-sm font-medium text-gray-900">Add Auction Result</span>
-            </a>
+            <div class="col-md-4">
+                <a href="#" class="text-decoration-none">
+                    <div class="card border-2 border-dashed h-100 text-center">
+                        <div class="card-body d-flex flex-column justify-content-center py-4">
+                            <i class="bi bi-clipboard-plus fs-1 text-primary mb-2"></i>
+                            <p class="mb-0 fw-semibold">Add Auction Result</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
 
-            <a href="#" class="relative block rounded-lg border-2 border-dashed border-gray-300 p-6 text-center hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <span class="mt-2 block text-sm font-medium text-gray-900">Bulk Upload</span>
-            </a>
+            <div class="col-md-4">
+                <a href="#" class="text-decoration-none">
+                    <div class="card border-2 border-dashed h-100 text-center">
+                        <div class="card-body d-flex flex-column justify-content-center py-4">
+                            <i class="bi bi-cloud-upload fs-1 text-primary mb-2"></i>
+                            <p class="mb-0 fw-semibold">Bulk Upload</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- Recent Submissions -->
-    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
-        <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Submissions</h3>
-            <div class="text-center py-12">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No submissions yet</h3>
-                <p class="mt-1 text-sm text-gray-500">Get started by creating a new security or auction result.</p>
-                <div class="mt-6">
-                    <button type="button" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
-                        <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                        </svg>
-                        New Submission
-                    </button>
-                </div>
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0 fw-bold">Recent Submissions</h5>
+        </div>
+        <div class="card-body">
+            <div class="text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                <h5 class="text-muted">No submissions yet</h5>
+                <p class="text-muted mb-4">Get started by creating a new security or auction result.</p>
+                <button type="button" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>New Submission
+                </button>
             </div>
         </div>
     </div>
