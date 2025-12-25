@@ -105,6 +105,9 @@ Route::middleware('auth')->group(function () {
         // View Auction Results (Read-only for all)
         Route::get('/auction-results', [AuctionResultController::class, 'index'])->name('auction-results.index');
         Route::get('/auction-results/{auctionResult}', [AuctionResultController::class, 'show'])->name('auction-results.show');
+        
+        // Global Search
+        Route::get('/search', [\App\Http\Controllers\SearchController::class, 'index'])->name('search.index');
     });
     
     // Import (Inputter and Super Admin only)

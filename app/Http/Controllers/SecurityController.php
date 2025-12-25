@@ -206,15 +206,13 @@ class SecurityController extends Controller
      */
     public function exportPdf()
     {
-        // Using dompdf wrapper if available, or just a simple view render
-        $securities = Security::all();
-        // Since we didn't setup a specific PDF view yet, let's just use what we have or stub it.
-        // Assuming 'pdf' alias is set to Barryvdh\DomPDF\Facade\Pdf::class
-        // $pdf = PDF::loadView('securities.pdf', compact('securities'));
-        // return $pdf->download('securities.pdf');
+        // Using dompdf wrapper
+        $securities = Security::with('productType')->latest()->get();
         
-        // For now, redirect with message as placeholder if view not ready
-        return back()->with('info', 'PDF Export functionality is ready to be configured.');
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('securities.pdf', compact('securities'));
+        $pdf->setPaper('a4', 'landscape');
+        
+        return $pdf->download('security-master-list-' . date('Y-m-d') . '.pdf');
     }
 
     /**

@@ -284,6 +284,16 @@
                         <i class="bi bi-list"></i>
                     </button>
 
+                    <!-- Global Search -->
+                    <form class="d-none d-md-flex ms-4" action="{{ route('search.index') }}" method="GET" style="max-width: 400px; width: 100%;">
+                        <div class="input-group">
+                            <input type="search" name="q" class="form-control bg-light border-0 small" placeholder="Search for ISIN, Security Name, or Auction No..." aria-label="Search" value="{{ request('q') }}">
+                            <button class="btn btn-primary" type="button" onclick="this.form.submit()">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+
                     <div class="ms-auto d-flex align-items-center">
                         <!-- Notifications -->
                         <div class="dropdown me-3">
