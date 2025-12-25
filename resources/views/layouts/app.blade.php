@@ -170,12 +170,30 @@
                     </a>
                 </li>
                 @endcan
+                
+                @can('view-securities')
+                <li>
+                    <a href="{{ route('auction-results.index') }}" class="{{ request()->routeIs('auction-results.*') ? 'active' : '' }}">
+                        <i class="bi bi-list-columns-reverse"></i>
+                        Auction Results
+                    </a>
+                </li>
+                @endcan
 
                 @can('create-securities')
                 <li>
                     <a href="{{ route('inputter.securities.create') }}" class="{{ request()->routeIs('inputter.securities.create') ? 'active' : '' }}">
                         <i class="bi bi-plus-circle"></i>
                         Add Security
+                    </a>
+                </li>
+                @endcan
+
+                @can('create-securities')
+                <li>
+                    <a href="{{ route('inputter.auction-results.create') }}" class="{{ request()->routeIs('inputter.auction-results.create') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i>
+                        Record Auction
                     </a>
                 </li>
                 @endcan

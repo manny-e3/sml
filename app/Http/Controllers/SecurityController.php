@@ -56,7 +56,7 @@ class SecurityController extends Controller
      */
     public function create()
     {
-        return view('securities.create');
+        return view('securities.create', ['security' => new Security()]);
     }
 
     /**

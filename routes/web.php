@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\SecurityController;
+use App\Http\Controllers\AuctionResultController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +62,9 @@ Route::middleware('auth')->group(function () {
         // inputter.securities.index, create, store, show, edit, update
         Route::resource('securities', SecurityController::class)->except(['destroy']);
         
+        // Auction Results Management
+        Route::resource('auction-results', AuctionResultController::class)->except(['destroy']);
+        
         // My Submissions
         Route::get('/my-submissions', function () {
             return view('inputter.submissions');
@@ -97,6 +101,10 @@ Route::middleware('auth')->group(function () {
         // Export
         Route::get('/securities/export/excel', [SecurityController::class, 'exportExcel'])->name('securities.export.excel');
         Route::get('/securities/export/pdf', [SecurityController::class, 'exportPdf'])->name('securities.export.pdf');
+
+        // View Auction Results (Read-only for all)
+        Route::get('/auction-results', [AuctionResultController::class, 'index'])->name('auction-results.index');
+        Route::get('/auction-results/{auctionResult}', [AuctionResultController::class, 'show'])->name('auction-results.show');
     });
     
     // Import (Inputter and Super Admin only)

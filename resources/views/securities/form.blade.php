@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', isset($security) ? 'Edit Security' : 'Create Security')
+@section('title', $security->exists ? 'Edit Security' : 'Create Security')
 
 @section('nav-links')
     <li class="nav-item">
@@ -10,14 +10,14 @@
     </li>
     <li class="nav-item">
         <a class="nav-link active" href="#">
-            <i class="bi bi-plus-circle me-1"></i>{{ isset($security) ? 'Edit' : 'Create' }} Security
+            <i class="bi bi-plus-circle me-1"></i>{{ $security->exists ? 'Edit' : 'Create' }} Security
         </a>
     </li>
 @endsection
 
 @section('header')
     <div class="d-flex justify-content-between align-items-center">
-        <h2 class="mb-0 fw-bold">{{ isset($security) ? 'Edit' : 'Create New' }} Security</h2>
+        <h2 class="mb-0 fw-bold">{{ $security->exists ? 'Edit' : 'Create New' }} Security</h2>
         <a href="{{ route('securities.index') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back to List
         </a>
@@ -25,10 +25,10 @@
 @endsection
 
 @section('content')
-    <form action="{{ isset($security) ? route('inputter.securities.update', $security) : route('inputter.securities.store') }}" 
+    <form action="{{ $security->exists ? route('inputter.securities.update', $security) : route('inputter.securities.store') }}" 
           method="POST" id="security-form">
         @csrf
-        @if(isset($security))
+        @if($security->exists)
             @method('PUT')
         @endif
 
@@ -334,7 +334,7 @@
                         <i class="bi bi-x-circle me-1"></i>Cancel
                     </a>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-1"></i>{{ isset($security) ? 'Update' : 'Create' }} Security
+                        <i class="bi bi-check-circle me-1"></i>{{ $security->exists ? 'Update' : 'Create' }} Security
                     </button>
                 </div>
             </div>
