@@ -1,0 +1,67 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SecurityController;
+use App\Http\Controllers\Api\AuctionResultController;
+use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\DashboardController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
+
+// Public Routes
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/verify-reset-token', [AuthController::class, 'verifyResetToken']);
+
+
+// Protected Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
+
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    // Securities
+    Route::apiResource('securities', SecurityController::class);
+    Route::post('/securities/import', [SecurityController::class, 'import']);
+
+    // Auction Results
+    Route::apiResource('auction-results', AuctionResultController::class);
+    
+    // Search
+    Route::get('/search', [SearchController::class, 'search']);
+    
+    // Admin Routes - User Management with Role-Based Access
+    Route::prefix('admin')->group(function () {
+        // Inputters and Super Admins can create users
+        Route::middleware('role:inputter|super_admin')->group(function () {
+            Route::post('users', [\App\Http\Controllers\Api\Admin\UserController::class, 'store']);
+        });
+        
+        // Authorizers and Super Admins can view and manage pending users
+        Route::middleware('role:authoriser|super_admin')->group(function () {
+            Route::get('users/pending', [\App\Http\Controllers\Api\Admin\UserController::class, 'pending']);
+            Route::post('users/{user}/approve', [\App\Http\Controllers\Api\Admin\UserController::class, 'approve']);
+            Route::post('users/{user}/reject', [\App\Http\Controllers\Api\Admin\UserController::class, 'reject']);
+        });
+        
+        // Super Admins have full access to user management
+        Route::middleware('role:super_admin')->group(function () {
+            Route::get('users', [\App\Http\Controllers\Api\Admin\UserController::class, 'index']);
+            Route::get('users/{user}', [\App\Http\Controllers\Api\Admin\UserController::class, 'show']);
+            Route::put('users/{user}', [\App\Http\Controllers\Api\Admin\UserController::class, 'update']);
+            Route::delete('users/{user}', [\App\Http\Controllers\Api\Admin\UserController::class, 'destroy']);
+            
+            // Product Types (existing)
+            Route::apiResource('product-types', \App\Http\Controllers\Api\Admin\ProductTypeController::class);
+        });
+    });
+});

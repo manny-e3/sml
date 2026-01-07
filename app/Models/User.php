@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -13,7 +14,14 @@ use OwenIt\Auditing\Contracts\Auditable;
 
 class User extends Authenticatable implements Auditable
 {
-    use HasFactory, Notifiable, HasRoles, LogsActivity, \OwenIt\Auditing\Auditable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, LogsActivity, \OwenIt\Auditing\Auditable;
+
+    /**
+     * Approval status constants.
+     */
+    const STATUS_PENDING = 'pending';
+    const STATUS_APPROVED = 'approved';
+    const STATUS_REJECTED = 'rejected';
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +39,10 @@ class User extends Authenticatable implements Auditable
         'employee_id',
         'is_active',
         'last_login_at',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'rejection_reason',
     ];
 
     /**
@@ -55,6 +67,7 @@ class User extends Authenticatable implements Auditable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -123,5 +136,69 @@ class User extends Authenticatable implements Auditable
     public function updateLastLogin(): void
     {
         $this->update(['last_login_at' => now()]);
+    }
+
+    /**
+     * Get the user who approved this user.
+     */
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * Scope to get only pending users.
+     */
+    public function scopePending($query)
+    {
+        return $query->where('approval_status', self::STATUS_PENDING);
+    }
+
+    /**
+     * Scope to get only approved users.
+     */
+    public function scopeApproved($query)
+    {
+        return $query->where('approval_status', self::STATUS_APPROVED);
+    }
+
+    /**
+     * Scope to get only rejected users.
+     */
+    public function scopeRejected($query)
+    {
+        return $query->where('approval_status', self::STATUS_REJECTED);
+    }
+
+    /**
+     * Check if user is pending approval.
+     */
+    public function isPending(): bool
+    {
+        return $this->approval_status === self::STATUS_PENDING;
+    }
+
+    /**
+     * Check if user is approved.
+     */
+    public function isApproved(): bool
+    {
+        return $this->approval_status === self::STATUS_APPROVED;
+    }
+
+    /**
+     * Check if user is rejected.
+     */
+    public function isRejected(): bool
+    {
+        return $this->approval_status === self::STATUS_REJECTED;
+    }
+
+    /**
+     * Check if user can login.
+     */
+    public function canLogin(): bool
+    {
+        return $this->isApproved() && $this->is_active;
     }
 }
