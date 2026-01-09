@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
 {
@@ -41,6 +42,75 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
+    /**
+     * @OA\Post(
+     *      path="/api/login",
+     *      operationId="login",
+     *      tags={"Authentication"},
+     *      summary="User Login",
+     *      description="Authenticate user and return API token",
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\JsonContent(
+     *              required={"email","password"},
+     *              @OA\Property(property="email", type="string", format="email", example="user@example.com"),
+     *              @OA\Property(property="password", type="string", format="password", example="Password123!")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="Successful operation",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="user", type="object"),
+     *              @OA\Property(property="token", type="string")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *      ),
+     *      @OA\Response(
+     *          response=429,
+     *          description="Too Many Attempts (Lockout)",
+     *      ),
+     *       @OA\Response(
+     *          response=403,
+     *          description="Forbidden (Active/Password Change)",
+     *      )
+     * )
+     */
+    #[OA\Post(
+        path: "/api/login",
+        operationId: "login",
+        summary: "User Login",
+        description: "Authenticate user and return API token",
+        tags: ["Authentication"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["email", "password"],
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email", example: "user@example.com"),
+                    new OA\Property(property: "password", type: "string", format: "password", example: "Password123!")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Successful operation",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "user", type: "object"),
+                        new OA\Property(property: "token", type: "string")
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 429, description: "Too Many Attempts (Lockout)"),
+            new OA\Response(response: 403, description: "Forbidden (Active/Password Change)")
+        ]
+    )]
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
@@ -153,6 +223,17 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
+    #[OA\Post(
+        path: "/api/logout",
+        operationId: "logout",
+        summary: "User Logout",
+        description: "Revoke the user's current access token",
+        tags: ["Authentication"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Logged out successfully")
+        ]
+    )]
     public function logout(Request $request): JsonResponse
     {
         $this->authService->logout($request->user());
@@ -181,6 +262,26 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
+
+    #[OA\Post(
+        path: "/api/forgot-password",
+        operationId: "forgotPassword",
+        summary: "Forgot Password",
+        description: "Send password reset link to user email",
+        tags: ["Authentication"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["email"],
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email", example: "user@example.com")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Reset link sent")
+        ]
+    )]
     public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate([
@@ -207,6 +308,29 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
+    #[OA\Post(
+        path: "/api/reset-password",
+        operationId: "resetPassword",
+        summary: "Reset Password",
+        description: "Reset user password using token",
+        tags: ["Authentication"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["token", "email", "password", "password_confirmation"],
+                properties: [
+                    new OA\Property(property: "token", type: "string"),
+                    new OA\Property(property: "email", type: "string", format: "email"),
+                    new OA\Property(property: "password", type: "string", format: "password"),
+                    new OA\Property(property: "password_confirmation", type: "string", format: "password")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Password reset successfully"),
+            new OA\Response(response: 422, description: "Validation Error")
+        ]
+    )]
     public function resetPassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -289,6 +413,29 @@ class AuthController extends Controller
 
         return response()->json($result, $statusCode);
     }
+    #[OA\Post(
+        path: "/api/change-initial-password",
+        operationId: "changeInitialPassword",
+        summary: "Change Initial Password",
+        description: "Change password for the first time (forced)",
+        tags: ["Authentication"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["email", "current_password", "password", "password_confirmation"],
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email"),
+                    new OA\Property(property: "current_password", type: "string", format: "password"),
+                    new OA\Property(property: "password", type: "string", format: "password"),
+                    new OA\Property(property: "password_confirmation", type: "string", format: "password")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Password changed successfully"),
+            new OA\Response(response: 400, description: "Invalid credentials or Validation Error")
+        ]
+    )]
     public function changeInitialPassword(Request $request): JsonResponse
     {
         $request->validate([

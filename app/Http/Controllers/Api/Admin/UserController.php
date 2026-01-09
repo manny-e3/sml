@@ -8,6 +8,7 @@ use App\Models\PendingUser;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
@@ -34,6 +35,37 @@ class UserController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
+    #[OA\Get(
+        path: "/api/admin/users",
+        operationId: "getUsers",
+        summary: "Get List of Users",
+        description: "Retrieve a paginated list of users",
+        tags: ["User Management"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "per_page",
+                in: "query",
+                description: "Number of items per page",
+                required: false,
+                schema: new OA\Schema(type: "integer", default: 15)
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Successful operation",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object")),
+                        new OA\Property(property: "meta", type: "object")
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
     public function index(Request $request): JsonResponse
     {
         $perPage = $request->get('per_page', 15);
@@ -48,6 +80,34 @@ class UserController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
+    #[OA\Post(
+        path: "/api/admin/users",
+        operationId: "createUser",
+        summary: "Create User",
+        description: "Create a new user (Admin only)",
+        tags: ["User Management"],
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["first_name", "last_name", "email", "role", "password"],
+                properties: [
+                    new OA\Property(property: "first_name", type: "string"),
+                    new OA\Property(property: "last_name", type: "string"),
+                    new OA\Property(property: "email", type: "string", format: "email"),
+                    new OA\Property(property: "department", type: "string"),
+                    new OA\Property(property: "role", type: "string", description: "Role name (e.g., admin, user)"),
+                    new OA\Property(property: "password", type: "string", format: "password"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "User created successfully"),
+            new OA\Response(response: 422, description: "Validation Error"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -85,6 +145,29 @@ class UserController extends Controller
      * @param User $user
      * @return JsonResponse
      */
+    #[OA\Get(
+        path: "/api/admin/users/{user}",
+        operationId: "getUser",
+        summary: "Get User Details",
+        description: "Retrieve details of a specific user",
+        tags: ["User Management"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "user",
+                in: "path",
+                description: "User ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Successful operation"),
+            new OA\Response(response: 404, description: "User not found"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
     public function show(User $user): JsonResponse
     {
         $user = $this->userService->getUserById($user);
@@ -99,6 +182,43 @@ class UserController extends Controller
      * @param User $user
      * @return JsonResponse
      */
+    #[OA\Put(
+        path: "/api/admin/users/{user}",
+        operationId: "updateUser",
+        summary: "Update User",
+        description: "Update details of a specific user",
+        tags: ["User Management"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "user",
+                in: "path",
+                description: "User ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["first_name", "last_name", "email", "role"],
+                properties: [
+                    new OA\Property(property: "first_name", type: "string"),
+                    new OA\Property(property: "last_name", type: "string"),
+                    new OA\Property(property: "email", type: "string", format: "email"),
+                    new OA\Property(property: "department", type: "string"),
+                    new OA\Property(property: "role", type: "string"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "User updated successfully"),
+            new OA\Response(response: 422, description: "Validation Error"),
+            new OA\Response(response: 404, description: "User not found"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
     public function update(Request $request, User $user): JsonResponse
     {
         $validated = $request->validate([
@@ -130,6 +250,29 @@ class UserController extends Controller
      * @param User $user
      * @return JsonResponse
      */
+    #[OA\Delete(
+        path: "/api/admin/users/{user}",
+        operationId: "deleteUser",
+        summary: "Delete User",
+        description: "Soft delete a specific user",
+        tags: ["User Management"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "user",
+                in: "path",
+                description: "User ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "User deleted successfully"),
+            new OA\Response(response: 404, description: "User not found"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
     public function destroy(User $user): JsonResponse
     {
         try {
@@ -151,6 +294,28 @@ class UserController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
+    #[OA\Get(
+        path: "/api/admin/pending-users",
+        operationId: "getPendingUsers",
+        summary: "Get Pending Users",
+        description: "Retrieve a paginated list of pending users awaiting approval",
+        tags: ["User Approvals"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "per_page",
+                in: "query",
+                description: "Number of items per page",
+                required: false,
+                schema: new OA\Schema(type: "integer", default: 15)
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Successful operation"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
     public function pending(Request $request): JsonResponse
     {
         $perPage = $request->get('per_page', 15);
@@ -166,6 +331,29 @@ class UserController extends Controller
      * @param PendingUser $pendingUser
      * @return JsonResponse
      */
+    #[OA\Post(
+        path: "/api/admin/pending-users/{pendingUser}/approve",
+        operationId: "approveUser",
+        summary: "Approve Pending User",
+        description: "Approve a pending user registration",
+        tags: ["User Approvals"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "pendingUser",
+                in: "path",
+                description: "Pending User ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "User approved successfully"),
+            new OA\Response(response: 404, description: "Pending request not found"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
     public function approve(Request $request, PendingUser $pendingUser): JsonResponse
     {
         try {
@@ -189,6 +377,38 @@ class UserController extends Controller
      * @param PendingUser $pendingUser
      * @return JsonResponse
      */
+    #[OA\Post(
+        path: "/api/admin/pending-users/{pendingUser}/reject",
+        operationId: "rejectUser",
+        summary: "Reject Pending User",
+        description: "Reject a pending user registration",
+        tags: ["User Approvals"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "pendingUser",
+                in: "path",
+                description: "Pending User ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["reason"],
+                properties: [
+                    new OA\Property(property: "reason", type: "string", example: "Incomplete information provided.")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "User rejected successfully"),
+            new OA\Response(response: 404, description: "Pending request not found"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
     public function reject(Request $request, PendingUser $pendingUser): JsonResponse
     {
         $validated = $request->validate([

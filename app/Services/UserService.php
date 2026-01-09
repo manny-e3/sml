@@ -23,16 +23,9 @@ class UserService
      * @param string|null $approvalStatus Filter by approval status (null = approved only for backward compatibility)
      * @return LengthAwarePaginator
      */
-    public function getAllUsers(int $perPage = 15, ?string $approvalStatus = User::STATUS_APPROVED): LengthAwarePaginator
+    public function getAllUsers(int $perPage = 15): LengthAwarePaginator
     {
-        $query = User::with('roles');
-        
-        // Filter by approval status if specified
-        if ($approvalStatus !== null) {
-            $query->where('approval_status', $approvalStatus);
-        }
-        
-        return $query->latest()->paginate($perPage);
+        return User::with('roles')->latest()->paginate($perPage);
     }
 
     /**
