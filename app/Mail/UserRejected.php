@@ -19,7 +19,7 @@ class UserRejected extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(User $user, string $reason)
+    public function __construct($user, string $reason)
     {
         $this->user = $user;
         $this->reason = $reason;

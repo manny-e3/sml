@@ -131,7 +131,7 @@
         </div>
         
         <div class="email-body">
-            <h2>Hello, {{ $user->name ?? 'User' }}!</h2>
+            <h2>Hello, {{ $user->full_name }}!</h2>
             
             <p>We received a request to reset the password for your account associated with <strong>{{ $user->email }}</strong>.</p>
             

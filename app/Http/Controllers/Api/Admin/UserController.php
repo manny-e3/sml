@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\PendingUser;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -162,13 +163,13 @@ class UserController extends Controller
      * Approve a pending user.
      *
      * @param Request $request
-     * @param User $user
+     * @param PendingUser $pendingUser
      * @return JsonResponse
      */
-    public function approve(Request $request, User $user): JsonResponse
+    public function approve(Request $request, PendingUser $pendingUser): JsonResponse
     {
         try {
-            $approvedUser = $this->userService->approveUser($user, auth()->id());
+            $approvedUser = $this->userService->approveUser($pendingUser, auth()->id());
 
             return response()->json([
                 'message' => 'User approved successfully.',
@@ -185,10 +186,10 @@ class UserController extends Controller
      * Reject a pending user.
      *
      * @param Request $request
-     * @param User $user
+     * @param PendingUser $pendingUser
      * @return JsonResponse
      */
-    public function reject(Request $request, User $user): JsonResponse
+    public function reject(Request $request, PendingUser $pendingUser): JsonResponse
     {
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
@@ -196,7 +197,7 @@ class UserController extends Controller
 
         try {
             $rejectedUser = $this->userService->rejectUser(
-                $user, 
+                $pendingUser, 
                 auth()->id(), 
                 $validated['reason']
             );

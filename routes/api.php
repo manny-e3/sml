@@ -19,10 +19,11 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/verify-reset-token', [AuthController::class, 'verifyResetToken']);
+Route::post('/change-initial-password', [AuthController::class, 'changeInitialPassword']);
 
 
 // Protected Routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'ensure_password_changed'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
@@ -49,12 +50,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Authorizers and Super Admins can view and manage pending users
         Route::middleware('role:authoriser|super_admin')->group(function () {
             Route::get('users/pending', [\App\Http\Controllers\Api\Admin\UserController::class, 'pending']);
-            Route::post('users/{user}/approve', [\App\Http\Controllers\Api\Admin\UserController::class, 'approve']);
-            Route::post('users/{user}/reject', [\App\Http\Controllers\Api\Admin\UserController::class, 'reject']);
+            Route::post('users/pending/{pendingUser}/approve', [\App\Http\Controllers\Api\Admin\UserController::class, 'approve']);
+            Route::post('users/pending/{pendingUser}/reject', [\App\Http\Controllers\Api\Admin\UserController::class, 'reject']);
         });
         
         // Super Admins have full access to user management
-        Route::middleware('role:super_admin')->group(function () {
+        Route::middleware('role:super_admin|inputter|authoriser')->group(function () {
             Route::get('users', [\App\Http\Controllers\Api\Admin\UserController::class, 'index']);
             Route::get('users/{user}', [\App\Http\Controllers\Api\Admin\UserController::class, 'show']);
             Route::put('users/{user}', [\App\Http\Controllers\Api\Admin\UserController::class, 'update']);

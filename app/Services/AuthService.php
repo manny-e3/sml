@@ -8,10 +8,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Str;
+use App\Services\UserService;
 
 class AuthService
 {
+    protected $userService;
+
+    public function __construct(UserService $userService)
+    {
+        $this->userService = $userService;
+    }
     /**
      * Authenticate user and generate API token.
      *
@@ -25,6 +32,11 @@ class AuthService
         }
 
         $user = Auth::user();
+
+        if ($user->must_change_password) {
+            return ['require_change_password' => true];
+        }
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return [
@@ -149,11 +161,8 @@ class AuthService
      */
     protected function updatePassword(User $user, string $password): void
     {
-        $user->forceFill([
-            'password' => Hash::make($password)
-        ])->setRememberToken(Str::random(60));
-
-        $user->save();
+        // Delegate to UserService to ensure policies (history, etc) are followed
+        $this->userService->updatePassword($user, $password);
     }
 
     /**
@@ -165,5 +174,38 @@ class AuthService
     public function getAuthenticatedUser(User $user): User
     {
         return $user;
+    }
+    /**
+     * Change user's initial password.
+     *
+     * @param User $user
+     * @param string $password
+     * @return void
+     */
+    /**
+     * Change user's initial password (public flow).
+     *
+     * @param string $email
+     * @param string $currentPassword
+     * @param string $newPassword
+     * @return array
+     */
+    public function changeInitialPassword(string $email, string $currentPassword, string $newPassword): array
+    {
+        $user = User::where('email', $email)->first();
+
+        if (!$user || !Hash::check($currentPassword, $user->password)) {
+            return [
+                'success' => false,
+                'message' => 'Invalid email or current password.',
+            ];
+        }
+
+        $this->updatePassword($user, $newPassword);
+
+        return [
+            'success' => true,
+            'message' => 'Password changed successfully. You can now login.',
+        ];
     }
 }

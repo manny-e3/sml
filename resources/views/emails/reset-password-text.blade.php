@@ -1,7 +1,7 @@
 Password Reset Request
 ======================
 
-Hello, {{ $user->name ?? 'User' }}!
+Hello, {{ $user->full_name }}!
 
 We received a request to reset the password for your account associated with {{ $user->email }}.
 

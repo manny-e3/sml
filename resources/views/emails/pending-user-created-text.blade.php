@@ -10,8 +10,8 @@ USER DETAILS:
 Full Name: {{ $user->full_name }}
 Email: {{ $user->email }}
 Department: {{ $user->department ?? 'Not specified' }}
-Requested Role: {{ $user->roles->first()->name ?? 'N/A' }}
-Created At: {{ $user->created_at->format('M d, Y h:i A') }}
+Requested Role: {{ $user->role ?? ($user->roles->first()->name ?? 'N/A') }}
+Created At: {{ optional($user->created_at)->format('M d, Y h:i A') ?? now()->format('M d, Y h:i A') }}
 
 Please review this user's information and take appropriate action.
 

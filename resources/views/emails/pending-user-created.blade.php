@@ -141,11 +141,11 @@
                     </tr>
                     <tr>
                         <td>Requested Role:</td>
-                        <td><strong>{{ $user->roles->first()->name ?? 'N/A' }}</strong></td>
+                        <td><strong>{{ $user->role ?? ($user->roles->first()->name ?? 'N/A') }}</strong></td>
                     </tr>
                     <tr>
                         <td>Created At:</td>
-                        <td>{{ $user->created_at->format('M d, Y h:i A') }}</td>
+                        <td>{{ optional($user->created_at)->format('M d, Y h:i A') ?? now()->format('M d, Y h:i A') }}</td>
                     </tr>
                 </table>
             </div>

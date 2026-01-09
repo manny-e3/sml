@@ -19,7 +19,7 @@ class PendingUserCreated extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(User $user)
+    public function __construct($user)
     {
         $this->user = $user;
         

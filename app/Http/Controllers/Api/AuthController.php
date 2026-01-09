@@ -4,8 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\AuthService;
+use App\Models\User;
+use App\Models\LoginLog;
+use App\Models\LoginCount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter; // Keep for now in case
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -39,15 +48,103 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        $result = $this->authService->login($credentials);
+        $ipAddress = $request->ip();
+        $user = User::where('email', $request->email)->first();
 
-        if (!$result) {
+        // 1. User not found
+        if (!$user) {
+            $this->logLoginAttempt(null, 'failed', $ipAddress, 'Invalid email or password', $request->email);
             return response()->json([
                 'message' => 'The provided credentials do not match our records.',
             ], 401);
         }
 
+        // 2. Check Active Status
+        if (!$user->is_active) {
+            $this->logLoginAttempt($user->id, 'failed', $ipAddress, 'Account not active', $user->email);
+            return response()->json([
+                'message' => 'Your account is not active. Please contact the administrator.',
+            ], 403);
+        }
+
+        // 3. Check Lockout
+        if ($user->lockout_time) {
+             // Permanent lockout logic per snippet
+            $this->logLoginAttempt($user->id, 'failed', $ipAddress, 'Account locked', $user->email);
+            return response()->json([
+                'message' => 'Your account has been locked. Please reset your password.',
+            ], 403);
+        }
+
+        // 4. Attempt Login via Service
+        $result = $this->authService->login($credentials);
+
+        if (!$result) {
+            // Increment Failed Logins
+            $user->increment('failed_logins'); // native increment
+
+            // Check Limit
+            $loginCount = LoginCount::orderby('id', 'DESC')->first();
+            $limit = $loginCount ? $loginCount->login_count : 3; // Default 3
+
+            if ($user->failed_logins >= $limit) {
+                $user->lockout_time = now();
+                $user->save();
+                $this->logLoginAttempt($user->id, 'failed', $ipAddress, 'Account locked due to failed attempts', $user->email);
+                return response()->json([
+                    'message' => 'Your account has been locked. Please reset your password.',
+                ], 429); // or 403
+            }
+
+            $this->logLoginAttempt($user->id, 'failed', $ipAddress, 'Incorrect email or password', $user->email);
+            return response()->json([
+                'message' => 'The provided credentials do not match our records.',
+            ], 401);
+        }
+
+       
+
+        // Password Expiry
+        $loginCount = LoginCount::orderby('id', 'DESC')->first();
+        $ageLimit = $loginCount ? $loginCount->password_age : 30;
+        
+        if ($user->password_changed_at && now()->diffInDays($user->password_changed_at) >= $ageLimit) {
+            // Require change
+             return response()->json([
+                'message' => 'You must change your password as it has been ' . $ageLimit . ' days since the last update.',
+                'require_change_password' => true,
+            ], 403);
+        }
+
+        // Reset counters
+        $user->failed_logins = 0;
+        $user->lockout_time = null;
+        $user->save();
+        Session::forget('disclaimer_accepted');
+
+        $this->logLoginAttempt($user->id, 'success', $ipAddress, 'Login successful', $user->email);
+
+        if (isset($result['require_change_password']) && $result['require_change_password']) {
+            return response()->json([
+                'message' => 'You must change your password before logging in.',
+                'require_change_password' => true,
+            ], 403);
+        }
+
         return response()->json($result, 200);
+    }
+
+    // Log login attempts
+    protected function logLoginAttempt($userId = null, $status, $ipAddress, $message = null, $email = null)
+    {
+        LoginLog::create([
+            'user_id'    => $userId,
+            'name'       => $userId ? User::find($userId)->getFullNameAttribute() : null, // Use accessor
+            'email'      => $email, 
+            'status'     => $status,
+            'ip_address' => $ipAddress,
+            'message'    => $message,
+        ]);
     }
 
     /**
@@ -119,24 +216,55 @@ class AuthController extends Controller
                 'required',
                 'string',
                 'confirmed',
-                'min:8',             // must be at least 10 characters in length
-                'regex:/[a-z]/',      // must contain at least one lowercase letter
-                'regex:/[A-Z]/',      // must contain at least one uppercase letter
-                'regex:/[0-9]/',      // must contain at least one digit
-                'regex:/[@$!.%*#?&]/', // must contain a special character
+                'min:8',             
+                'regex:/[a-z]/',      
+                'regex:/[A-Z]/',      
+                'regex:/[0-9]/',      
+                'regex:/[@$!.%*#?&]/',
             ],
-            
         ]);
 
-        $result = $this->authService->resetPassword(
-            $request->only('email', 'password', 'password_confirmation', 'token')
-        );
+        $user = User::where('email', $request->email)->first();
 
-        $statusCode = $result['success'] ? 200 : 400;
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        // Check if the new password is in any of the last 10 used passwords (Configurable)
+        $loginCount = LoginCount::orderby('id', 'DESC')->first();
+        $historyLimit = $loginCount ? $loginCount->login_history_count : 10;
+        
+        $pastPasswords = $user->passwordHistories()->latest()->take($historyLimit)->pluck('password');
+        
+        foreach ($pastPasswords as $pastPassword) {
+            if (Hash::check($request->password, $pastPassword)) {
+                return response()->json([
+                    'message' => 'You cannot reuse your last ' . $historyLimit . ' passwords.',
+                    'errors' => ['password' => ['You cannot reuse your last ' . $historyLimit . ' passwords.']]
+                ], 422);
+            }
+        }
+
+        // Update the user's password
+        $user->password = Hash::make($request->password);
+        $user->password_changed_at = now();
+        $user->must_change_password = false; // Ensure logic matches previous updatePassword
+        
+        // Reset lockout info
+        $user->lockout_time  = null; 
+        $user->failed_logins = 0;    
+        $user->save();
+
+        // Add the new password to the history
+        $user->passwordHistories()->create(['password' => $user->password]);
+
+        // Delete the password reset record
+        // Delete the password reset record
+        DB::table('password_reset_tokens')->where(['email' => $request->email])->delete();
 
         return response()->json([
-            'message' => $result['message'],
-        ], $statusCode);
+            'message' => 'Password has been reset successfully.',
+        ], 200);
     }
 
     /**
@@ -160,5 +288,38 @@ class AuthController extends Controller
         $statusCode = $result['valid'] ? 200 : 400;
 
         return response()->json($result, $statusCode);
+    }
+    public function changeInitialPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+            'current_password' => ['required'],
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                'min:8',
+                'regex:/[a-z]/',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[@$!.%*#?&]/',
+            ],
+        ]);
+
+        $result = $this->authService->changeInitialPassword(
+            $request->email,
+            $request->current_password,
+            $request->password
+        );
+
+        if (!$result['success']) {
+            return response()->json([
+                'message' => $result['message'],
+            ], 400);
+        }
+
+        return response()->json([
+            'message' => $result['message'],
+        ], 200);
     }
 }
