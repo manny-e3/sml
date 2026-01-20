@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DashboardController;
 
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/verify-reset-token', [AuthController::class, 'verifyResetToken']);
@@ -45,6 +46,11 @@ Route::middleware(['auth:sanctum', 'ensure_password_changed'])->group(function (
         // Inputters and Super Admins can create users
         Route::middleware('role:inputter|super_admin')->group(function () {
             Route::post('users', [\App\Http\Controllers\Api\Admin\UserController::class, 'store']);
+            
+            // Market Categories Requests
+            Route::post('market-categories', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'store']);
+            Route::put('market-categories/{marketCategory}', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'update']);
+            Route::delete('market-categories/{marketCategory}', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'destroy']);
         });
         
         // Authorizers and Super Admins can view and manage pending users
@@ -52,6 +58,11 @@ Route::middleware(['auth:sanctum', 'ensure_password_changed'])->group(function (
             Route::get('users/pending', [\App\Http\Controllers\Api\Admin\UserController::class, 'pending']);
             Route::post('users/pending/{pendingUser}/approve', [\App\Http\Controllers\Api\Admin\UserController::class, 'approve']);
             Route::post('users/pending/{pendingUser}/reject', [\App\Http\Controllers\Api\Admin\UserController::class, 'reject']);
+
+            // Market Categories Approval
+            Route::get('pending-market-categories', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'pending']);
+            Route::post('pending-market-categories/{pendingMarketCategory}/approve', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'approve']);
+            Route::post('pending-market-categories/{pendingMarketCategory}/reject', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'reject']);
         });
         
         // Super Admins have full access to user management
@@ -60,6 +71,10 @@ Route::middleware(['auth:sanctum', 'ensure_password_changed'])->group(function (
             Route::get('users/{user}', [\App\Http\Controllers\Api\Admin\UserController::class, 'show']);
             Route::put('users/{user}', [\App\Http\Controllers\Api\Admin\UserController::class, 'update']);
             Route::delete('users/{user}', [\App\Http\Controllers\Api\Admin\UserController::class, 'destroy']);
+            
+            // Market Categories View
+            Route::get('market-categories', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'index']);
+            Route::get('market-categories/{marketCategory}', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'show']);
             
             // Product Types (existing)
             Route::apiResource('product-types', \App\Http\Controllers\Api\Admin\ProductTypeController::class);

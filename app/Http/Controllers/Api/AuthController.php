@@ -53,8 +53,8 @@ class AuthController extends Controller
      *          required=true,
      *          @OA\JsonContent(
      *              required={"email","password"},
-     *              @OA\Property(property="email", type="string", format="email", example="user@example.com"),
-     *              @OA\Property(property="password", type="string", format="password", example="Password123!")
+     *              @OA\Property(property="email", type="string", format="email", example="aboajahemmanue.l@gmail.com"),
+     *              @OA\Property(property="password", type="string", format="password", example="@Password2!")
      *          )
      *      ),
      *      @OA\Response(
@@ -192,7 +192,7 @@ class AuthController extends Controller
         $user->save();
         Session::forget('disclaimer_accepted');
 
-        $this->logLoginAttempt($user->id, 'success', $ipAddress, 'Login successful', $user->email);
+        $this->logLoginAttempt($user->id, 'success', $ipAddress, 'Credentials verified, OTP sent', $user->email);
 
         if (isset($result['require_change_password']) && $result['require_change_password']) {
             return response()->json([
@@ -200,6 +200,70 @@ class AuthController extends Controller
                 'require_change_password' => true,
             ], 403);
         }
+
+        if (isset($result['otp_required']) && $result['otp_required']) {
+            return response()->json([
+               'message' => $result['message'],
+               'otp_required' => true,
+               'email' => $result['email'],
+           ], 200);
+       }
+ 
+        // Should not really reach here if OTP is mandatory, but for safety:
+        return response()->json($result, 200);
+    }
+    
+    #[OA\Post(
+        path: "/api/verify-otp",
+        operationId: "verifyOtp",
+        summary: "Verify OTP",
+        description: "Verify OTP and return API token",
+        tags: ["Authentication"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["email", "otp"],
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email"),
+                    new OA\Property(property: "otp", type: "string")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Successful operation",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "user", type: "object"),
+                        new OA\Property(property: "token", type: "string")
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: "Invalid OTP")
+        ]
+    )]
+    public function verifyOtp(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+            'otp' => ['required'],
+        ]);
+
+        $ipAddress = $request->ip();
+
+        $result = $this->authService->verifyOtp($request->email, $request->otp);
+
+        if (!$result) {
+            $user = User::where('email', $request->email)->first();
+            $this->logLoginAttempt($user ? $user->id : null, 'failed', $ipAddress, 'Invalid OTP', $request->email);
+             return response()->json([
+                'message' => 'Invalid OTP.',
+            ], 400);
+        }
+
+        $user = $result['user'];
+        $this->logLoginAttempt($user->id, 'success', $ipAddress, 'Login successful (OTP Verified)', $user->email);
 
         return response()->json($result, 200);
     }

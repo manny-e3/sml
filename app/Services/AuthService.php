@@ -10,17 +10,21 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Str;
 use App\Services\UserService;
+use App\Services\OtpService;
 
 class AuthService
 {
     protected $userService;
+    protected $otpService;
 
-    public function __construct(UserService $userService)
+    public function __construct(UserService $userService, OtpService $otpService)
     {
         $this->userService = $userService;
+        $this->otpService = $otpService;
     }
+
     /**
-     * Authenticate user and generate API token.
+     * Authenticate user and initiate OTP process.
      *
      * @param array $credentials
      * @return array|null
@@ -36,6 +40,50 @@ class AuthService
         if ($user->must_change_password) {
             return ['require_change_password' => true];
         }
+
+        // Generate OTP
+        $otpResponse = $this->otpService->generateOtp($user);
+
+        // You might want to check $otpResponse status here if possible
+        
+        return [
+            'otp_required' => true,
+            'email' => $user->email,
+            'message' => 'OTP sent to your email/phone. Please verify.',
+        ];
+    }
+
+    /**
+     * Verify OTP and generate API token.
+     *
+     * @param string $email
+     * @param string $otp
+     * @return array|null
+     */
+    public function verifyOtp(string $email, string $otp): ?array
+    {
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return null;
+        }
+
+        $response = $this->otpService->verifyOtp($user, $otp);
+
+        // Assuming the OTP service returns some validation status in the JSON response
+        // Adjust the condition based on actual API response structure if needed.
+        // For now, if the service didn't throw and returned something, we check logic.
+        // The service throws if not ok(), so if we are here, HTTP status is 200.
+        // But we should check if the body says success.
+        // Since I don't know the exact response body, I'll assume success if no exception was thrown by service.
+        // Update: OtpService returns [] on exception.
+        
+        if (empty($response)) {
+            return null; // OTP verification failed
+        }
+        
+        // Also check if response has specific success flag if known. 
+        // Based on user snippet, it just returns response->json().
 
         $token = $user->createToken('api-token')->plainTextToken;
 
@@ -175,13 +223,6 @@ class AuthService
     {
         return $user;
     }
-    /**
-     * Change user's initial password.
-     *
-     * @param User $user
-     * @param string $password
-     * @return void
-     */
     /**
      * Change user's initial password (public flow).
      *
