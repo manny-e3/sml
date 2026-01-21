@@ -27,7 +27,7 @@ class AuthController extends Controller
     // ========================= LOGIN =========================
 
     #[OA\Post(
-        path: "/api/login",
+        path: "/api/v1/login",
         operationId: "login",
         summary: "User Login",
         description: "Authenticate user and initiate OTP process",
@@ -118,7 +118,7 @@ class AuthController extends Controller
     // ========================= VERIFY OTP =========================
 
     #[OA\Post(
-        path: "/api/verify-otp",
+        path: "/api/v1/verify-otp",
         operationId: "verifyOtp",
         summary: "Verify OTP",
         description: "Verify OTP and return API token",
@@ -157,7 +157,7 @@ class AuthController extends Controller
     // ========================= LOGOUT =========================
 
     #[OA\Post(
-        path: "/api/logout",
+        path: "/api/v1/logout",
         operationId: "logout",
         summary: "Logout",
         description: "Invalidate user token",
@@ -178,7 +178,7 @@ class AuthController extends Controller
     // ========================= FORGOT PASSWORD =========================
 
     #[OA\Post(
-        path: "/api/forgot-password",
+        path: "/api/v1/forgot-password",
         operationId: "forgotPassword",
         summary: "Forgot Password",
         description: "Send password reset link",
@@ -209,7 +209,7 @@ class AuthController extends Controller
     // ========================= RESET PASSWORD =========================
 
     #[OA\Post(
-        path: "/api/reset-password",
+        path: "/api/v1/reset-password",
         operationId: "resetPassword",
         summary: "Reset Password",
         description: "Reset password using token",
@@ -227,13 +227,20 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
-        return response()->json(['message' => 'Password reset successfully'], 200);
+        $result = $this->authService->resetPassword(
+            $request->only('email', 'password', 'password_confirmation', 'token')
+        );
+
+        return response()->json(
+            ['message' => $result['message']], 
+            $result['success'] ? 200 : 400
+        );
     }
 
     // ========================= CHANGE INITIAL PASSWORD =========================
 
     #[OA\Post(
-        path: "/api/change-initial-password",
+        path: "/api/v1/change-initial-password",
         operationId: "changeInitialPassword",
         summary: "Change Initial Password",
         tags: ["Authentication"],

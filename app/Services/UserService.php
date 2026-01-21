@@ -251,6 +251,11 @@ class UserService
 
         $user->password = Hash::make($password);
         $user->must_change_password = false;
+        
+        // Reset lockout counters
+        $user->lockout_time = null;
+        $user->failed_logins = 0;
+
         $user->save();
 
         // Save to history

@@ -4,7 +4,7 @@
         "title": "SMLARS API",
         "description": "API Documentation for SMLARS Application",
         "contact": {
-            "email": "admin@smlars.com"
+            "email": "aboajah.emmanuel@fmdqgroup.com"
         },
         "license": {
             "name": "Apache 2.0",
@@ -19,7 +19,7 @@
         }
     ],
     "paths": {
-        "/api/admin/market-categories": {
+        "/api/v1/admin/market-categories": {
             "get": {
                 "tags": [
                     "Market Categories"
@@ -145,7 +145,7 @@
                 ]
             }
         },
-        "/api/admin/market-categories/{marketCategory}": {
+        "/api/v1/admin/market-categories/{marketCategory}": {
             "get": {
                 "tags": [
                     "Market Categories"
@@ -319,7 +319,7 @@
                 ]
             }
         },
-        "/api/admin/pending-market-categories": {
+        "/api/v1/admin/pending-market-categories": {
             "get": {
                 "tags": [
                     "Market Category Approvals"
@@ -375,7 +375,7 @@
                 ]
             }
         },
-        "/api/admin/pending-market-categories/{pendingMarketCategory}/approve": {
+        "/api/v1/admin/pending-market-categories/{pendingMarketCategory}/approve": {
             "post": {
                 "tags": [
                     "Market Category Approvals"
@@ -431,7 +431,7 @@
                 ]
             }
         },
-        "/api/admin/pending-market-categories/{pendingMarketCategory}/reject": {
+        "/api/v1/admin/pending-market-categories/{pendingMarketCategory}/reject": {
             "post": {
                 "tags": [
                     "Market Category Approvals"
@@ -506,7 +506,7 @@
                 ]
             }
         },
-        "/api/admin/users": {
+        "/api/v1/admin/users": {
             "get": {
                 "tags": [
                     "User Management"
@@ -629,7 +629,7 @@
                 ]
             }
         },
-        "/api/admin/users/{user}": {
+        "/api/v1/admin/users/{user}": {
             "get": {
                 "tags": [
                     "User Management"
@@ -782,7 +782,7 @@
                 ]
             }
         },
-        "/api/admin/pending-users": {
+        "/api/v1/admin/pending-users": {
             "get": {
                 "tags": [
                     "User Approvals"
@@ -820,7 +820,7 @@
                 ]
             }
         },
-        "/api/admin/pending-users/{pendingUser}/approve": {
+        "/api/v1/admin/pending-users/{pendingUser}/approve": {
             "post": {
                 "tags": [
                     "User Approvals"
@@ -860,7 +860,7 @@
                 ]
             }
         },
-        "/api/admin/pending-users/{pendingUser}/reject": {
+        "/api/v1/admin/pending-users/{pendingUser}/reject": {
             "post": {
                 "tags": [
                     "User Approvals"
@@ -919,7 +919,7 @@
                 ]
             }
         },
-        "/api/login": {
+        "/api/v1/login": {
             "post": {
                 "tags": [
                     "Authentication"
@@ -990,7 +990,7 @@
                 }
             }
         },
-        "/api/verify-otp": {
+        "/api/v1/verify-otp": {
             "post": {
                 "tags": [
                     "Authentication"
@@ -1032,7 +1032,7 @@
                 }
             }
         },
-        "/api/logout": {
+        "/api/v1/logout": {
             "post": {
                 "tags": [
                     "Authentication"
@@ -1055,7 +1055,7 @@
                 ]
             }
         },
-        "/api/forgot-password": {
+        "/api/v1/forgot-password": {
             "post": {
                 "tags": [
                     "Authentication"
@@ -1092,7 +1092,7 @@
                 }
             }
         },
-        "/api/reset-password": {
+        "/api/v1/reset-password": {
             "post": {
                 "tags": [
                     "Authentication"
@@ -1110,7 +1110,7 @@
                 }
             }
         },
-        "/api/change-initial-password": {
+        "/api/v1/change-initial-password": {
             "post": {
                 "tags": [
                     "Authentication"

@@ -20,7 +20,7 @@ class MarketCategoryController extends Controller
     }
 
     #[OA\Get(
-        path: "/api/admin/market-categories",
+        path: "/api/v1/admin/market-categories",
         operationId: "getMarketCategories",
         summary: "Get List of Market Categories",
         tags: ["Market Categories"],
@@ -56,8 +56,39 @@ class MarketCategoryController extends Controller
         return response()->json($categories);
     }
 
+    #[OA\Get(
+        path: "/api/v1/market-categories/all",
+        operationId: "getAllActiveMarketCategories",
+        summary: "Get All Active Market Categories",
+        description: "Retrieve a list of all active market categories (for dropdowns)",
+        tags: ["Market Categories"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(
+                response: 200, 
+                description: "Successful operation",
+                content: new OA\JsonContent(
+                    type: "array",
+                    items: new OA\Items(
+                        properties: [
+                            new OA\Property(property: "id", type: "integer"),
+                            new OA\Property(property: "name", type: "string"),
+                            new OA\Property(property: "code", type: "string")
+                        ]
+                    )
+                )
+            ),
+            new OA\Response(response: 401, description: "Unauthenticated")
+        ]
+    )]
+    public function all(): JsonResponse
+    {
+        $categories = $this->marketCategoryService->getAllActiveCategories();
+        return response()->json($categories);
+    }
+
     #[OA\Post(
-        path: "/api/admin/market-categories",
+        path: "/api/v1/admin/market-categories",
         operationId: "createMarketCategory",
         summary: "Create Market Category (Request)",
         description: "Submit a request to create a new market category",
@@ -112,7 +143,7 @@ class MarketCategoryController extends Controller
     }
 
     #[OA\Get(
-        path: "/api/admin/market-categories/{marketCategory}",
+        path: "/api/v1/admin/market-categories/{marketCategory}",
         operationId: "getMarketCategory",
         summary: "Get Market Category Details",
         tags: ["Market Categories"],
@@ -139,7 +170,7 @@ class MarketCategoryController extends Controller
     }
 
     #[OA\Put(
-        path: "/api/admin/market-categories/{marketCategory}",
+        path: "/api/v1/admin/market-categories/{marketCategory}",
         operationId: "updateMarketCategory",
         summary: "Update Market Category (Request)",
         description: "Submit a request to update an existing market category",
@@ -203,7 +234,7 @@ class MarketCategoryController extends Controller
     }
 
     #[OA\Delete(
-        path: "/api/admin/market-categories/{marketCategory}",
+        path: "/api/v1/admin/market-categories/{marketCategory}",
         operationId: "deleteMarketCategory",
         summary: "Delete Market Category (Request)",
         description: "Submit a request to delete a market category",
@@ -250,7 +281,7 @@ class MarketCategoryController extends Controller
     // Pending Requests
 
     #[OA\Get(
-        path: "/api/admin/pending-market-categories",
+        path: "/api/v1/admin/pending-market-categories",
         operationId: "getPendingMarketCategories",
         summary: "Get Pending Market Categories",
         description: "Retrieve a paginated list of pending market category requests",
@@ -288,7 +319,7 @@ class MarketCategoryController extends Controller
     }
 
     #[OA\Post(
-        path: "/api/admin/pending-market-categories/{pendingMarketCategory}/approve",
+        path: "/api/v1/admin/pending-market-categories/{pendingMarketCategory}/approve",
         operationId: "approveMarketCategory",
         summary: "Approve Pending Market Category",
         description: "Approve a pending market category request",
@@ -333,7 +364,7 @@ class MarketCategoryController extends Controller
     }
 
     #[OA\Post(
-        path: "/api/admin/pending-market-categories/{pendingMarketCategory}/reject",
+        path: "/api/v1/admin/pending-market-categories/{pendingMarketCategory}/reject",
         operationId: "rejectMarketCategory",
         summary: "Reject Pending Market Category",
         description: "Reject a pending market category request",
@@ -375,7 +406,7 @@ class MarketCategoryController extends Controller
     )]
     public function reject(Request $request, PendingMarketCategory $pendingMarketCategory): JsonResponse
     {
-        $validated = $request->validate(['reason' => 'required|string|max:1000']);
+        $validated = $request->validate(['reason' => 'required|string']);
         
         try {
             $result = $this->marketCategoryService->rejectRequest($pendingMarketCategory, $validated['reason']);

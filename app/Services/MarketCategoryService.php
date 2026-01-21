@@ -20,6 +20,14 @@ class MarketCategoryService
     }
 
     /**
+     * Get all active market categories (for dropdowns).
+     */
+    public function getAllActiveCategories()
+    {
+        return MarketCategory::where('is_active', true)->orderBy('name')->get();
+    }
+
+    /**
      * Get paginated list of pending requests.
      */
     public function getPendingRequests(int $perPage = 15): LengthAwarePaginator
@@ -148,7 +156,7 @@ class MarketCategoryService
             $pending->update(['approval_status' => 'approved']);
 
             // Notify Requester
-            // $this->notifyRequester($pending, 'approved');
+            $this->notifyRequester($pending, 'approved');
 
             return $result;
         });
@@ -174,7 +182,7 @@ class MarketCategoryService
         ]);
 
         // Notify Requester
-        // $this->notifyRequester($pending, 'rejected');
+        $this->notifyRequester($pending, 'rejected');
 
         return $pending;
     }
@@ -194,10 +202,18 @@ class MarketCategoryService
     }
 
     /**
-     * Notify requester (Optional/Future).
+     * Notify requester (Inputter) of approval/rejection.
      */
-    // private function notifyRequester(PendingMarketCategory $pending, string $status): void
-    // {
-    //     // Implementation for notifying inputter of approval/rejection
-    // }
+    private function notifyRequester(PendingMarketCategory $pending, string $status): void
+    {
+        if (!$pending->requester) {
+            return;
+        }
+
+        if ($status === 'approved') {
+            Mail::to($pending->requester->email)->send(new \App\Mail\MarketCategoryRequestApproved($pending));
+        } elseif ($status === 'rejected') {
+            Mail::to($pending->requester->email)->send(new \App\Mail\MarketCategoryRequestRejected($pending, $pending->rejection_reason));
+        }
+    }
 }

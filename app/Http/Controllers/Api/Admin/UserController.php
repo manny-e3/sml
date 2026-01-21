@@ -36,7 +36,7 @@ class UserController extends Controller
      * @return JsonResponse
      */
     #[OA\Get(
-        path: "/api/admin/users",
+        path: "/api/v1/admin/users",
         operationId: "getUsers",
         summary: "Get List of Users",
         description: "Retrieve a paginated list of users",
@@ -81,7 +81,7 @@ class UserController extends Controller
      * @return JsonResponse
      */
     #[OA\Post(
-        path: "/api/admin/users",
+        path: "/api/v1/admin/users",
         operationId: "createUser",
         summary: "Create User",
         description: "Create a new user (Admin only)",
@@ -146,7 +146,7 @@ class UserController extends Controller
      * @return JsonResponse
      */
     #[OA\Get(
-        path: "/api/admin/users/{user}",
+        path: "/api/v1/admin/users/{user}",
         operationId: "getUser",
         summary: "Get User Details",
         description: "Retrieve details of a specific user",
@@ -183,7 +183,7 @@ class UserController extends Controller
      * @return JsonResponse
      */
     #[OA\Put(
-        path: "/api/admin/users/{user}",
+        path: "/api/v1/admin/users/{user}",
         operationId: "updateUser",
         summary: "Update User",
         description: "Update details of a specific user",
@@ -251,7 +251,7 @@ class UserController extends Controller
      * @return JsonResponse
      */
     #[OA\Delete(
-        path: "/api/admin/users/{user}",
+        path: "/api/v1/admin/users/{user}",
         operationId: "deleteUser",
         summary: "Delete User",
         description: "Soft delete a specific user",
@@ -295,7 +295,7 @@ class UserController extends Controller
      * @return JsonResponse
      */
     #[OA\Get(
-        path: "/api/admin/pending-users",
+        path: "/api/v1/admin/pending-users",
         operationId: "getPendingUsers",
         summary: "Get Pending Users",
         description: "Retrieve a paginated list of pending users awaiting approval",
@@ -332,7 +332,7 @@ class UserController extends Controller
      * @return JsonResponse
      */
     #[OA\Post(
-        path: "/api/admin/pending-users/{pendingUser}/approve",
+        path: "/api/v1/admin/pending-users/{pendingUser}/approve",
         operationId: "approveUser",
         summary: "Approve Pending User",
         description: "Approve a pending user registration",
@@ -378,7 +378,7 @@ class UserController extends Controller
      * @return JsonResponse
      */
     #[OA\Post(
-        path: "/api/admin/pending-users/{pendingUser}/reject",
+        path: "/api/v1/admin/pending-users/{pendingUser}/reject",
         operationId: "rejectUser",
         summary: "Reject Pending User",
         description: "Reject a pending user registration",
