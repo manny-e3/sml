@@ -49,12 +49,22 @@ class OtpService
                 "username" => $user->email,
                 "otp" => $otp,
             ]);
+
+            // logger()->info('OTP Verify Response: ' . $response->body()); // Optional: keep or remove debug log
  
             if (!$response->ok()) {
                 $response->throw();
             }
+
+            $data = $response->json();
+
+            // Check API specific success flag
+            if (isset($data['success']) && !$data['success']) {
+                logger()->warning('OTP Validation Failed for ' . $user->email . ': ' . json_encode($data));
+                return [];
+            }
  
-            return $response->json();
+            return $data;
  
         } catch (Throwable $th) {
             logger($th);

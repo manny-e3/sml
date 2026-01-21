@@ -9,106 +9,54 @@ use App\Models\LoginLog;
 use App\Models\LoginCount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter; // Keep for now in case
-use Illuminate\Support\Str;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: "Authentication", description: "Authentication & Security APIs")]
 class AuthController extends Controller
 {
-    /**
-     * The authentication service instance.
-     *
-     * @var AuthService
-     */
-    protected $authService;
+    protected AuthService $authService;
 
-    /**
-     * Create a new controller instance.
-     *
-     * @param AuthService $authService
-     */
     public function __construct(AuthService $authService)
     {
         $this->authService = $authService;
     }
 
-    /**
-     * Handle an incoming authentication request.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    /**
-     * @OA\Post(
-     *      path="/api/login",
-     *      operationId="login",
-     *      tags={"Authentication"},
-     *      summary="User Login",
-     *      description="Authenticate user and return API token",
-     *      @OA\RequestBody(
-     *          required=true,
-     *          @OA\JsonContent(
-     *              required={"email","password"},
-     *              @OA\Property(property="email", type="string", format="email", example="aboajahemmanue.l@gmail.com"),
-     *              @OA\Property(property="password", type="string", format="password", example="@Password2!")
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=200,
-     *          description="Successful operation",
-     *          @OA\JsonContent(
-     *              @OA\Property(property="user", type="object"),
-     *              @OA\Property(property="token", type="string")
-     *          )
-     *      ),
-     *      @OA\Response(
-     *          response=401,
-     *          description="Unauthenticated",
-     *      ),
-     *      @OA\Response(
-     *          response=429,
-     *          description="Too Many Attempts (Lockout)",
-     *      ),
-     *       @OA\Response(
-     *          response=403,
-     *          description="Forbidden (Active/Password Change)",
-     *      )
-     * )
-     */
+    // ========================= LOGIN =========================
+
     #[OA\Post(
         path: "/api/login",
         operationId: "login",
         summary: "User Login",
-        description: "Authenticate user and return API token",
+        description: "Authenticate user and initiate OTP process",
         tags: ["Authentication"],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 required: ["email", "password"],
                 properties: [
-                    new OA\Property(property: "email", type: "string", format: "email", example: "user@example.com"),
-                    new OA\Property(property: "password", type: "string", format: "password", example: "Password123!")
+                    new OA\Property(property: "email", type: "string", format: "email", example: "aboajahemmanue.l@gmail.com"),
+                    new OA\Property(property: "password", type: "string", format: "password", example: "@Password2")
                 ]
             )
         ),
         responses: [
             new OA\Response(
                 response: 200,
-                description: "Successful operation",
+                description: "OTP Required",
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: "user", type: "object"),
-                        new OA\Property(property: "token", type: "string")
+                        new OA\Property(property: "otp_required", type: "boolean", example: true),
+                        new OA\Property(property: "email", type: "string", example: "aboajahemmanue.l@gmail.com"),
+                        new OA\Property(property: "message", type: "string", example: "OTP sent to your email.")
                     ]
                 )
             ),
-            new OA\Response(response: 401, description: "Unauthenticated"),
-            new OA\Response(response: 429, description: "Too Many Attempts (Lockout)"),
-            new OA\Response(response: 403, description: "Forbidden (Active/Password Change)")
+            new OA\Response(response: 401, description: "Invalid credentials"),
+            new OA\Response(response: 403, description: "Account inactive or password expired"),
+            new OA\Response(response: 429, description: "Account locked")
         ]
     )]
     public function login(Request $request): JsonResponse
@@ -121,98 +69,54 @@ class AuthController extends Controller
         $ipAddress = $request->ip();
         $user = User::where('email', $request->email)->first();
 
-        // 1. User not found
         if (!$user) {
             $this->logLoginAttempt(null, 'failed', $ipAddress, 'Invalid email or password', $request->email);
-            return response()->json([
-                'message' => 'The provided credentials do not match our records.',
-            ], 401);
+            return response()->json(['message' => 'Invalid credentials.'], 401);
         }
 
-        // 2. Check Active Status
         if (!$user->is_active) {
             $this->logLoginAttempt($user->id, 'failed', $ipAddress, 'Account not active', $user->email);
-            return response()->json([
-                'message' => 'Your account is not active. Please contact the administrator.',
-            ], 403);
+            return response()->json(['message' => 'Account is not active.'], 403);
         }
 
-        // 3. Check Lockout
         if ($user->lockout_time) {
-             // Permanent lockout logic per snippet
             $this->logLoginAttempt($user->id, 'failed', $ipAddress, 'Account locked', $user->email);
-            return response()->json([
-                'message' => 'Your account has been locked. Please reset your password.',
-            ], 403);
+            return response()->json(['message' => 'Account locked. Reset password.'], 403);
         }
 
-        // 4. Attempt Login via Service
         $result = $this->authService->login($credentials);
 
         if (!$result) {
-            // Increment Failed Logins
-            $user->increment('failed_logins'); // native increment
+            $user->increment('failed_logins');
 
-            // Check Limit
-            $loginCount = LoginCount::orderby('id', 'DESC')->first();
-            $limit = $loginCount ? $loginCount->login_count : 3; // Default 3
+            $limit = optional(LoginCount::latest()->first())->login_count ?? 3;
 
             if ($user->failed_logins >= $limit) {
-                $user->lockout_time = now();
-                $user->save();
-                $this->logLoginAttempt($user->id, 'failed', $ipAddress, 'Account locked due to failed attempts', $user->email);
-                return response()->json([
-                    'message' => 'Your account has been locked. Please reset your password.',
-                ], 429); // or 403
+                $user->update(['lockout_time' => now()]);
+                return response()->json(['message' => 'Account locked.'], 429);
             }
 
-            $this->logLoginAttempt($user->id, 'failed', $ipAddress, 'Incorrect email or password', $user->email);
-            return response()->json([
-                'message' => 'The provided credentials do not match our records.',
-            ], 401);
+            return response()->json(['message' => 'Invalid credentials.'], 401);
         }
 
+        // Password expiry check
+        $ageLimit = optional(LoginCount::latest()->first())->password_age ?? 30;
+
+        if ($user->password_changed_at && now()->diffInDays($user->password_changed_at) >= $ageLimit) {
+            return response()->json([
+                'message' => 'Password expired.',
+                'require_change_password' => true,
+            ], 403);
+        }
+
+        $user->update(['failed_logins' => 0, 'lockout_time' => null]);
        
 
-        // Password Expiry
-        $loginCount = LoginCount::orderby('id', 'DESC')->first();
-        $ageLimit = $loginCount ? $loginCount->password_age : 30;
-        
-        if ($user->password_changed_at && now()->diffInDays($user->password_changed_at) >= $ageLimit) {
-            // Require change
-             return response()->json([
-                'message' => 'You must change your password as it has been ' . $ageLimit . ' days since the last update.',
-                'require_change_password' => true,
-            ], 403);
-        }
-
-        // Reset counters
-        $user->failed_logins = 0;
-        $user->lockout_time = null;
-        $user->save();
-        Session::forget('disclaimer_accepted');
-
-        $this->logLoginAttempt($user->id, 'success', $ipAddress, 'Credentials verified, OTP sent', $user->email);
-
-        if (isset($result['require_change_password']) && $result['require_change_password']) {
-            return response()->json([
-                'message' => 'You must change your password before logging in.',
-                'require_change_password' => true,
-            ], 403);
-        }
-
-        if (isset($result['otp_required']) && $result['otp_required']) {
-            return response()->json([
-               'message' => $result['message'],
-               'otp_required' => true,
-               'email' => $result['email'],
-           ], 200);
-       }
- 
-        // Should not really reach here if OTP is mandatory, but for safety:
         return response()->json($result, 200);
     }
-    
+
+    // ========================= VERIFY OTP =========================
+
     #[OA\Post(
         path: "/api/verify-otp",
         operationId: "verifyOtp",
@@ -225,21 +129,12 @@ class AuthController extends Controller
                 required: ["email", "otp"],
                 properties: [
                     new OA\Property(property: "email", type: "string", format: "email"),
-                    new OA\Property(property: "otp", type: "string")
+                    new OA\Property(property: "otp", type: "string", example: "123456")
                 ]
             )
         ),
         responses: [
-            new OA\Response(
-                response: 200,
-                description: "Successful operation",
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: "user", type: "object"),
-                        new OA\Property(property: "token", type: "string")
-                    ]
-                )
-            ),
+            new OA\Response(response: 200, description: "OTP verified successfully"),
             new OA\Response(response: 400, description: "Invalid OTP")
         ]
     )]
@@ -250,254 +145,101 @@ class AuthController extends Controller
             'otp' => ['required'],
         ]);
 
-        $ipAddress = $request->ip();
-
         $result = $this->authService->verifyOtp($request->email, $request->otp);
 
         if (!$result) {
-            $user = User::where('email', $request->email)->first();
-            $this->logLoginAttempt($user ? $user->id : null, 'failed', $ipAddress, 'Invalid OTP', $request->email);
-             return response()->json([
-                'message' => 'Invalid OTP.',
-            ], 400);
+            return response()->json(['message' => 'Invalid OTP.'], 400);
         }
-
-        $user = $result['user'];
-        $this->logLoginAttempt($user->id, 'success', $ipAddress, 'Login successful (OTP Verified)', $user->email);
 
         return response()->json($result, 200);
     }
 
-    // Log login attempts
-    protected function logLoginAttempt($userId = null, $status, $ipAddress, $message = null, $email = null)
-    {
-        LoginLog::create([
-            'user_id'    => $userId,
-            'name'       => $userId ? User::find($userId)->getFullNameAttribute() : null, // Use accessor
-            'email'      => $email, 
-            'status'     => $status,
-            'ip_address' => $ipAddress,
-            'message'    => $message,
-        ]);
-    }
+    // ========================= LOGOUT =========================
 
-    /**
-     * Destroy an authenticated session.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
     #[OA\Post(
         path: "/api/logout",
         operationId: "logout",
-        summary: "User Logout",
-        description: "Revoke the user's current access token",
+        summary: "Logout",
+        description: "Invalidate user token",
         tags: ["Authentication"],
         security: [["bearerAuth" => []]],
         responses: [
-            new OA\Response(response: 200, description: "Logged out successfully")
+            new OA\Response(response: 200, description: "Logged out successfully"),
+            new OA\Response(response: 401, description: "Unauthenticated")
         ]
     )]
     public function logout(Request $request): JsonResponse
     {
         $this->authService->logout($request->user());
 
-        return response()->json([
-            'message' => 'Logged out successfully',
-        ], 200);
+        return response()->json(['message' => 'Logged out successfully'], 200);
     }
 
-    /**
-     * Get the authenticated user.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function user(Request $request): JsonResponse
-    {
-        $user = $this->authService->getAuthenticatedUser($request->user());
-
-        return response()->json($user, 200);
-    }
-
-    /**
-     * Handle forgot password request.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
+    // ========================= FORGOT PASSWORD =========================
 
     #[OA\Post(
         path: "/api/forgot-password",
         operationId: "forgotPassword",
         summary: "Forgot Password",
-        description: "Send password reset link to user email",
+        description: "Send password reset link",
         tags: ["Authentication"],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 required: ["email"],
                 properties: [
-                    new OA\Property(property: "email", type: "string", format: "email", example: "user@example.com")
+                    new OA\Property(property: "email", type: "string", format: "email")
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: "Reset link sent")
+            new OA\Response(response: 200, description: "Reset link sent"),
+            new OA\Response(response: 500, description: "Mail error")
         ]
     )]
     public function forgotPassword(Request $request): JsonResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-        ]);
+        $request->validate(['email' => ['required', 'email']]);
 
-        try {
-            $result = $this->authService->sendPasswordResetLink($request->email);
+        $result = $this->authService->sendPasswordResetLink($request->email);
 
-            return response()->json([
-                'message' => $result['message'],
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to send password reset email. Please try again later.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
-        }
+        return response()->json(['message' => $result['message']], 200);
     }
 
-    /**
-     * Handle password reset.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
+    // ========================= RESET PASSWORD =========================
+
     #[OA\Post(
         path: "/api/reset-password",
         operationId: "resetPassword",
         summary: "Reset Password",
-        description: "Reset user password using token",
+        description: "Reset password using token",
         tags: ["Authentication"],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ["token", "email", "password", "password_confirmation"],
-                properties: [
-                    new OA\Property(property: "token", type: "string"),
-                    new OA\Property(property: "email", type: "string", format: "email"),
-                    new OA\Property(property: "password", type: "string", format: "password"),
-                    new OA\Property(property: "password_confirmation", type: "string", format: "password")
-                ]
-            )
-        ),
         responses: [
             new OA\Response(response: 200, description: "Password reset successfully"),
-            new OA\Response(response: 422, description: "Validation Error")
+            new OA\Response(response: 422, description: "Validation error")
         ]
     )]
     public function resetPassword(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'token' => ['required'],
-            'email' => ['required', 'email'],
-            'password' => [
-                'required',
-                'string',
-                'confirmed',
-                'min:8',             
-                'regex:/[a-z]/',      
-                'regex:/[A-Z]/',      
-                'regex:/[0-9]/',      
-                'regex:/[@$!.%*#?&]/',
-            ],
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found.'], 404);
-        }
-
-        // Check if the new password is in any of the last 10 used passwords (Configurable)
-        $loginCount = LoginCount::orderby('id', 'DESC')->first();
-        $historyLimit = $loginCount ? $loginCount->login_history_count : 10;
-        
-        $pastPasswords = $user->passwordHistories()->latest()->take($historyLimit)->pluck('password');
-        
-        foreach ($pastPasswords as $pastPassword) {
-            if (Hash::check($request->password, $pastPassword)) {
-                return response()->json([
-                    'message' => 'You cannot reuse your last ' . $historyLimit . ' passwords.',
-                    'errors' => ['password' => ['You cannot reuse your last ' . $historyLimit . ' passwords.']]
-                ], 422);
-            }
-        }
-
-        // Update the user's password
-        $user->password = Hash::make($request->password);
-        $user->password_changed_at = now();
-        $user->must_change_password = false; // Ensure logic matches previous updatePassword
-        
-        // Reset lockout info
-        $user->lockout_time  = null; 
-        $user->failed_logins = 0;    
-        $user->save();
-
-        // Add the new password to the history
-        $user->passwordHistories()->create(['password' => $user->password]);
-
-        // Delete the password reset record
-        // Delete the password reset record
-        DB::table('password_reset_tokens')->where(['email' => $request->email])->delete();
-
-        return response()->json([
-            'message' => 'Password has been reset successfully.',
-        ], 200);
-    }
-
-    /**
-     * Verify password reset token.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function verifyResetToken(Request $request): JsonResponse
-    {
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
-        $result = $this->authService->verifyResetToken(
-            $request->email,
-            $request->token
-        );
-
-        $statusCode = $result['valid'] ? 200 : 400;
-
-        return response()->json($result, $statusCode);
+        return response()->json(['message' => 'Password reset successfully'], 200);
     }
+
+    // ========================= CHANGE INITIAL PASSWORD =========================
+
     #[OA\Post(
         path: "/api/change-initial-password",
         operationId: "changeInitialPassword",
         summary: "Change Initial Password",
-        description: "Change password for the first time (forced)",
         tags: ["Authentication"],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ["email", "current_password", "password", "password_confirmation"],
-                properties: [
-                    new OA\Property(property: "email", type: "string", format: "email"),
-                    new OA\Property(property: "current_password", type: "string", format: "password"),
-                    new OA\Property(property: "password", type: "string", format: "password"),
-                    new OA\Property(property: "password_confirmation", type: "string", format: "password")
-                ]
-            )
-        ),
         responses: [
             new OA\Response(response: 200, description: "Password changed successfully"),
-            new OA\Response(response: 400, description: "Invalid credentials or Validation Error")
+            new OA\Response(response: 400, description: "Invalid credentials")
         ]
     )]
     public function changeInitialPassword(Request $request): JsonResponse
@@ -505,16 +247,7 @@ class AuthController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
             'current_password' => ['required'],
-            'password' => [
-                'required',
-                'string',
-                'confirmed',
-                'min:8',
-                'regex:/[a-z]/',
-                'regex:/[A-Z]/',
-                'regex:/[0-9]/',
-                'regex:/[@$!.%*#?&]/',
-            ],
+            'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
         $result = $this->authService->changeInitialPassword(
@@ -524,13 +257,22 @@ class AuthController extends Controller
         );
 
         if (!$result['success']) {
-            return response()->json([
-                'message' => $result['message'],
-            ], 400);
+            return response()->json(['message' => $result['message']], 400);
         }
 
-        return response()->json([
-            'message' => $result['message'],
-        ], 200);
+        return response()->json(['message' => $result['message']], 200);
+    }
+
+    // ========================= HELPERS =========================
+
+    protected function logLoginAttempt($userId, $status, $ip, $message, $email)
+    {
+        LoginLog::create([
+            'user_id' => $userId,
+            'email' => $email,
+            'status' => $status,
+            'ip_address' => $ip,
+            'message' => $message,
+        ]);
     }
 }

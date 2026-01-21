@@ -49,7 +49,7 @@ class AuthService
         return [
             'otp_required' => true,
             'email' => $user->email,
-            'message' => 'OTP sent to your email/phone. Please verify.',
+            'message' => 'OTP sent to your email. Please verify.',
         ];
     }
 
