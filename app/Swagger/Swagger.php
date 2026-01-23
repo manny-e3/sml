@@ -14,7 +14,7 @@ use OpenApi\Attributes as OA;
     description: "API Server"
 )]
 #[OA\Contact(
-    email: "admin@smlars.com"
+    email: "aboajah.emmanuel@fmdqgroup.com"
 )]
 #[OA\License(
     name: "Apache 2.0",

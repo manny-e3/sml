@@ -147,6 +147,7 @@ class MarketCategoryService
                 case 'delete':
                     $category = $pending->marketCategory;
                     if ($category) {
+                        // Perform soft delete (updates deleted_at column)
                         $category->delete();
                         $result = true;
                     }
