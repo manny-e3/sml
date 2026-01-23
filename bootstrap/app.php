@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'ensure_password_changed' => \App\Http\Middleware\EnsurePasswordIsChanged::class,
+            'auth.basic.custom' => \App\Http\Middleware\ApiBasicAuthMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
