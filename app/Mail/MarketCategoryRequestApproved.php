@@ -14,13 +14,15 @@ class MarketCategoryRequestApproved extends Mailable
     use Queueable, SerializesModels;
 
     public $pending;
+    public $requester;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingMarketCategory $pending)
+    public function __construct(PendingMarketCategory $pending, $requester = null)
     {
         $this->pending = $pending;
+        $this->requester = $requester;
     }
 
     /**

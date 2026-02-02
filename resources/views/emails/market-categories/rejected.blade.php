@@ -4,7 +4,7 @@
     <title>Request Rejected</title>
 </head>
 <body>
-    <p>Dear {{ $pending->requester->first_name }},</p>
+    <p>Dear {{ $requester['firstname'] ?? 'User' }},</p>
     
     <p>Your request to {{ $pending->request_type }} the market category <strong>{{ $pending->name }} ({{ $pending->code }})</strong> has been rejected.</p>
     

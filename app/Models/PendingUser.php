@@ -11,7 +11,7 @@ class PendingUser extends Model
     use HasFactory;
 
     protected $fillable = [
-        'first_name',
+        'firstname',
         'last_name',
         'email',
         'department',
@@ -37,6 +37,6 @@ class PendingUser extends Model
      */
     public function getFullNameAttribute(): string
     {
-        return "{$this->first_name} {$this->last_name}";
+        return "{$this->firstname} {$this->last_name}";
     }
 }

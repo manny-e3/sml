@@ -26,7 +26,7 @@ class OtpService
             $response = $this->http->post($this->url . '/generator', [
                 "appID" => config('otp.app_id'),
                 "username" => $user->email,
-                "name" => "$user->first_name $user->last_name",
+                "name" => "$user->firstname $user->last_name",
             ]);
  
             if (!$response->ok()) {

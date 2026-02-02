@@ -22,7 +22,7 @@ class User extends Authenticatable implements Auditable
      * @var list<string>
      */
     protected $fillable = [
-        'first_name',
+        'firstname',
         'last_name',
         'email',
         'password',
@@ -72,7 +72,7 @@ class User extends Authenticatable implements Auditable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['first_name', 'last_name', 'email', 'phone_number', 'department', 'employee_id', 'is_active'])
+            ->logOnly(['firstname', 'last_name', 'email', 'phone_number', 'department', 'employee_id', 'is_active'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }
@@ -82,7 +82,7 @@ class User extends Authenticatable implements Auditable
      */
     public function getFullNameAttribute(): string
     {
-        return "{$this->first_name} {$this->last_name}";
+        return "{$this->firstname} {$this->last_name}";
     }
 
     /**

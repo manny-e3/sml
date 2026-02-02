@@ -47,42 +47,34 @@ class SecurityController extends Controller
     public function store(StoreSecurityRequest $request)
     {
         $data = $request->validated();
-
-        // Auto-calculate Tenor and TTM
-        $issueDate = \Carbon\Carbon::parse($data['issue_date']);
-        $maturityDate = \Carbon\Carbon::parse($data['maturity_date']);
-        $data['tenor'] = $maturityDate->diffInYears($issueDate);
-        $data['ttm'] = $maturityDate->diffInYears(now());
         
-        // Auto-calculate Final Rating
-        $data['final_rating'] = ($data['rating_agency'] ?? '-') . '/' . 
-                                ($data['local_rating'] ?? '-') . '/' . 
-                                ($data['global_rating'] ?? '-');
-
-        // MAKER-CHECKER: If not Super Admin, create Pending Action
-        if (!Auth::user()->hasRole('super_admin')) {
-            PendingAction::create([
-                'action_type' => 'create',
-                'model_type' => Security::class,
-                'data' => $data,
-                'status' => 'pending',
-                'created_by' => Auth::id(),
-            ]);
-
+        // Add required fields for approval workflow
+        $data['requested_by'] = Auth::id();
+        
+        // For now, auto-assign first admin as authoriser (you can modify this logic)
+        $authoriser = \App\Models\User::role('admin')->first();
+        if (!$authoriser) {
             return response()->json([
-                'message' => 'Security creation submitted for approval.',
-                'status' => 'pending'
-            ], 202);
+                'message' => 'No authoriser available. Please contact administrator.'
+            ], 400);
         }
+        $data['authoriser_id'] = $authoriser->id;
 
-        // Direct Save (Super Admin)
-        $data['created_by'] = Auth::id();
-        $security = Security::create($data);
-
-        return response()->json([
-            'message' => 'Security created successfully.',
-            'data' => $security
-        ], 201);
+        try {
+            // Use SecurityService to create request
+            $securityService = app(\App\Services\SecurityService::class);
+            $pending = $securityService->createRequest($data);
+            
+            return response()->json([
+                'message' => 'Security creation request submitted for approval.',
+                'data' => $pending,
+                'status' => 'pending'
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to create security request: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

@@ -90,9 +90,9 @@ class UserController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["first_name", "last_name", "email", "role", "password"],
+                required: ["firstname", "last_name", "email", "role", "password"],
                 properties: [
-                    new OA\Property(property: "first_name", type: "string"),
+                    new OA\Property(property: "firstname", type: "string"),
                     new OA\Property(property: "last_name", type: "string"),
                     new OA\Property(property: "email", type: "string", format: "email"),
                     new OA\Property(property: "department", type: "string"),
@@ -111,7 +111,7 @@ class UserController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
+            'firstname' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users'],
             'department' => ['nullable', 'string', 'max:255'],
@@ -201,9 +201,9 @@ class UserController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["first_name", "last_name", "email", "role"],
+                required: ["firstname", "last_name", "email", "role"],
                 properties: [
-                    new OA\Property(property: "first_name", type: "string"),
+                    new OA\Property(property: "firstname", type: "string"),
                     new OA\Property(property: "last_name", type: "string"),
                     new OA\Property(property: "email", type: "string", format: "email"),
                     new OA\Property(property: "department", type: "string"),
@@ -222,7 +222,7 @@ class UserController extends Controller
     public function update(Request $request, User $user): JsonResponse
     {
         $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
+            'firstname' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email,' . $user->id],
             'department' => ['nullable', 'string', 'max:255'],

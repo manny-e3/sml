@@ -129,7 +129,20 @@ class MarketCategoryController extends Controller
             'code' => 'required|string|max:10',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
+            'requested_by' => 'required',
+            'authoriser_id' => 'required',
         ]);
+
+        $existing = MarketCategory::where('name', $request->name)
+            ->orWhere('code', $request->code)
+            ->first();
+
+        if ($existing) {
+             return response()->json([
+                'message' => 'Market Category with this name or code already exists.',
+                'error_code' => 'DUPLICATE_ENTRY'
+            ], 400);
+        }
 
         try {
             $pending = $this->marketCategoryService->createRequest($validated);
@@ -213,25 +226,60 @@ class MarketCategoryController extends Controller
             new OA\Response(response: 403, description: "Forbidden")
         ]
     )]
-    public function update(Request $request, MarketCategory $marketCategory): JsonResponse
-    {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'code' => 'sometimes|string|max:10',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+   public function update(Request $request, MarketCategory $marketCategory): JsonResponse
+{
+    $validated = $request->validate([
+        'name'           => 'sometimes|string|max:255',
+        'code'           => 'sometimes|string|max:10',
+        'description'    => 'nullable|string',
+        'is_active'       => 'sometimes|boolean',
+        'requested_by'    => 'required|integer',
+        'authoriser_id'   => 'required|integer',
+    ]);
 
-        try {
-            $pending = $this->marketCategoryService->updateRequest($marketCategory, $validated);
+    /**
+     * ✅ Check duplicate only if name or code is being updated
+     * ✅ Exclude the current record from duplicate check
+     */
+    if ($request->filled('name') || $request->filled('code')) {
+        $existing = MarketCategory::query()
+            ->where(function ($query) use ($request) {
+                if ($request->filled('name')) {
+                    $query->where('name', $request->name);
+                }
+
+                if ($request->filled('code')) {
+                    $query->orWhere('code', $request->code);
+                }
+            })
+            ->where('id', '!=', $marketCategory->id)
+            ->first();
+
+        if ($existing) {
             return response()->json([
-                'message' => 'Market Category update request submitted for approval.',
-                'data' => $pending
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 500);
+                'message'    => 'Market Category with this name or code already exists.',
+                'error_code' => 'DUPLICATE_ENTRY',
+            ], 409);
         }
     }
+
+    try {
+        $pending = $this->marketCategoryService->updateRequest($marketCategory, $validated);
+
+        return response()->json([
+            'message' => 'Market Category update request submitted for approval.',
+            'data'    => $pending,
+        ], 200);
+
+    } catch (\Throwable $e) {
+        report($e);
+
+        return response()->json([ 
+            'message' => 'Unable to submit update request at this time.',
+        ], 500);
+    }
+}
+
 
     #[OA\Delete(
         path: "/api/v1/admin/market-categories/{marketCategory}",
@@ -265,10 +313,15 @@ class MarketCategoryController extends Controller
             new OA\Response(response: 403, description: "Forbidden")
         ]
     )]
-    public function destroy(MarketCategory $marketCategory): JsonResponse
+    public function destroy(Request $request, MarketCategory $marketCategory): JsonResponse
     {
+        $validated = $request->validate([
+            'requested_by' => 'required',
+            'authoriser_id' => 'required',
+        ]);
+
         try {
-            $pending = $this->marketCategoryService->deleteRequest($marketCategory);
+            $pending = $this->marketCategoryService->deleteRequest($marketCategory, $validated);
             return response()->json([
                 'message' => 'Market Category deletion request submitted for approval.',
                 'data' => $pending

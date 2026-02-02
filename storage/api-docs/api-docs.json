@@ -574,14 +574,14 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "first_name",
+                                    "firstname",
                                     "last_name",
                                     "email",
                                     "role",
                                     "password"
                                 ],
                                 "properties": {
-                                    "first_name": {
+                                    "firstname": {
                                         "type": "string"
                                     },
                                     "last_name": {
@@ -692,13 +692,13 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "first_name",
+                                    "firstname",
                                     "last_name",
                                     "email",
                                     "role"
                                 ],
                                 "properties": {
-                                    "first_name": {
+                                    "firstname": {
                                         "type": "string"
                                     },
                                     "last_name": {

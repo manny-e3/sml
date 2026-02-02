@@ -20,6 +20,7 @@ class PendingMarketCategory extends Model
         'requested_by',
         'approval_status',
         'rejection_reason',
+        'selected_authoriser_id',
     ];
 
     protected $casts = [

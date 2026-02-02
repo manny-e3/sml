@@ -18,7 +18,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">First Name <span class="text-danger">*</span></label>
-                        <input type="text" name="first_name" class="form-control" value="{{ old('first_name') }}" required>
+                        <input type="text" name="firstname" class="form-control" value="{{ old('firstname') }}" required>
                     </div>
                     
                     <div class="col-md-6">

@@ -66,17 +66,6 @@ class SecurityController extends Controller
     {
         $data = $request->validated();
 
-        // Auto-calculate Tenor and TTM
-        $issueDate = \Carbon\Carbon::parse($data['issue_date']);
-        $maturityDate = \Carbon\Carbon::parse($data['maturity_date']);
-        $data['tenor'] = $maturityDate->diffInYears($issueDate);
-        $data['ttm'] = $maturityDate->diffInYears(now());
-        
-        // Auto-calculate Final Rating
-        $data['final_rating'] = ($data['rating_agency'] ?? '-') . '/' . 
-                                ($data['local_rating'] ?? '-') . '/' . 
-                                ($data['global_rating'] ?? '-');
-
         // MAKER-CHECKER: If not Super Admin, create Pending Action
         if (!Auth::user()->hasRole('super_admin')) {
             PendingAction::create([
@@ -121,19 +110,6 @@ class SecurityController extends Controller
     public function update(UpdateSecurityRequest $request, Security $security)
     {
         $data = $request->validated();
-        
-        // Re-calculate logic if dates changed
-        if (isset($data['issue_date']) || isset($data['maturity_date'])) {
-            $issueDate = \Carbon\Carbon::parse($data['issue_date'] ?? $security->issue_date);
-            $maturityDate = \Carbon\Carbon::parse($data['maturity_date'] ?? $security->maturity_date);
-            $data['tenor'] = $maturityDate->diffInYears($issueDate);
-            $data['ttm'] = $maturityDate->diffInYears(now());
-        }
-        
-        // Re-calculate Final Rating
-        $data['final_rating'] = ($data['rating_agency'] ?? $security->rating_agency) . '/' . 
-                                ($data['local_rating'] ?? $security->local_rating) . '/' . 
-                                ($data['global_rating'] ?? $security->global_rating);
 
         // MAKER-CHECKER
         if (!Auth::user()->hasRole('super_admin')) {

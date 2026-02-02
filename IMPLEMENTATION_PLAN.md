@@ -116,7 +116,7 @@ npm install chart.js
 
 ### 2.2 User Model & Roles
 - [ ] Extend User model with custom fields
-  - first_name
+  - firstname
   - last_name
   - phone_number
   - department

@@ -11,15 +11,26 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProductTypeService
 {
+    protected $externalUserService;
+
+    public function __construct(ExternalUserService $externalUserService)
+    {
+        $this->externalUserService = $externalUserService;
+    }
+
     /**
      * Get paginated list of product types.
      */
     public function getAllProductTypes(int $perPage = 15): LengthAwarePaginator
     {
-        return ProductType::with('marketCategory')
+        $types = ProductType::with('marketCategory')
             ->withCount('securities')
             ->latest()
             ->paginate($perPage);
+
+        return $this->externalUserService->enrichWithUsers($types, [
+             'created_by' => 'inputter',
+        ]);
     }
 
     /**
@@ -28,11 +39,15 @@ class ProductTypeService
      */
     public function getPendingRequests(int $perPage = 15): LengthAwarePaginator
     {
-        $query = PendingProductType::where('approval_status', 'pending')
+        $pending = PendingProductType::where('approval_status', 'pending')
             ->with(['requester', 'selectedAuthoriser', 'productType', 'marketCategory'])
-            ->latest();
+            ->latest()
+            ->paginate($perPage);
 
-        return $query->paginate($perPage);
+        return $this->externalUserService->enrichWithUsers($pending, [
+            'requested_by' => 'inputter',
+            'selected_authoriser_id' => 'authoriser'
+        ]);
     }
 
     /**
@@ -65,6 +80,9 @@ class ProductTypeService
     public function updateRequest(ProductType $productType, array $data): PendingProductType
     {
         return DB::transaction(function () use ($productType, $data) {
+            // Set the main product type to pending_approval
+            $productType->update(['approval_status' => 'pending_approval']);
+            
             $pending = PendingProductType::create([
                 'product_type_id' => $productType->id,
                 'market_category_id' => $data['market_category_id'] ?? $productType->market_category_id,
@@ -90,6 +108,9 @@ class ProductTypeService
     public function deleteRequest(ProductType $productType, array $data): PendingProductType
     {
         return DB::transaction(function () use ($productType, $data) {
+            // Set the main product type to pending_approval
+            $productType->update(['approval_status' => 'pending_approval']);
+            
             $pending = PendingProductType::create([
                 'product_type_id' => $productType->id,
                 'market_category_id' => $productType->market_category_id,
@@ -127,6 +148,7 @@ class ProductTypeService
                         'code' => $pending->code,
                         'description' => $pending->description,
                         'is_active' => $pending->is_active,
+                        'approval_status' => 'active',
                     ]);
                     break;
 
@@ -139,6 +161,7 @@ class ProductTypeService
                             'code' => $pending->code,
                             'description' => $pending->description,
                             'is_active' => $pending->is_active,
+                            'approval_status' => 'active',
                         ]);
                         $result = $productType;
                     }
@@ -172,15 +195,22 @@ class ProductTypeService
             throw new \Exception('Request is not pending.');
         }
 
-        $pending->update([
-            'approval_status' => 'rejected',
-            'rejection_reason' => $reason,
-        ]);
+        return DB::transaction(function () use ($pending, $reason) {
+            // Revert the main product type approval_status back to active if it was an update/delete request
+            if (in_array($pending->request_type, ['update', 'delete']) && $pending->productType) {
+                $pending->productType->update(['approval_status' => 'active']);
+            }
 
-        // Notify Requester
-        $this->notifyRequester($pending, 'rejected');
+            $pending->update([
+                'approval_status' => 'rejected',
+                'rejection_reason' => $reason,
+            ]);
 
-        return $pending;
+            // Notify Requester
+            $this->notifyRequester($pending, 'rejected');
+
+            return $pending;
+        });
     }
 
     /**
@@ -188,9 +218,9 @@ class ProductTypeService
      */
     private function notifySelectedAuthoriser(PendingProductType $pending): void
     {
-        $authoriser = $pending->selectedAuthoriser;
-        if ($authoriser) {
-             Mail::to($authoriser->email)->send(new \App\Mail\ProductTypeRequestPending($pending));
+        $authoriser = $this->externalUserService->getUserById($pending->selected_authoriser_id);
+        if ($authoriser && isset($authoriser['email'])) {
+             Mail::to($authoriser['email'])->send(new \App\Mail\ProductTypeRequestPending($pending));
         }
     }
 
@@ -199,14 +229,16 @@ class ProductTypeService
      */
     private function notifyRequester(PendingProductType $pending, string $status): void
     {
-        if (!$pending->requester) {
+        $requester = $this->externalUserService->getUserById($pending->requested_by);
+        
+        if (!$requester || !isset($requester['email'])) {
             return;
         }
 
         if ($status === 'approved') {
-            Mail::to($pending->requester->email)->send(new \App\Mail\ProductTypeRequestApproved($pending));
+            Mail::to($requester['email'])->send(new \App\Mail\ProductTypeRequestApproved($pending));
         } elseif ($status === 'rejected') {
-            Mail::to($pending->requester->email)->send(new \App\Mail\ProductTypeRequestRejected($pending, $pending->rejection_reason));
+            Mail::to($requester['email'])->send(new \App\Mail\ProductTypeRequestRejected($pending, $pending->rejection_reason));
         }
     }
 }

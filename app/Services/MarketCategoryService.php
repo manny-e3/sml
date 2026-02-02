@@ -11,12 +11,23 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class MarketCategoryService
 {
+    protected $externalUserService;
+
+    public function __construct(ExternalUserService $externalUserService)
+    {
+        $this->externalUserService = $externalUserService;
+    }
+
     /**
      * Get paginated list of market categories.
      */
     public function getAllCategories(int $perPage = 15): LengthAwarePaginator
     {
-        return MarketCategory::latest()->paginate($perPage);
+        $categories = MarketCategory::latest()->paginate($perPage);
+
+        return $this->externalUserService->enrichWithUsers($categories, [
+             'created_by' => 'inputter',
+        ]);
     }
 
     /**
@@ -32,10 +43,14 @@ class MarketCategoryService
      */
     public function getPendingRequests(int $perPage = 15): LengthAwarePaginator
     {
-        return PendingMarketCategory::where('approval_status', 'pending')
-            ->with(['requester', 'marketCategory'])
+        $pending = PendingMarketCategory::with(['requester', 'marketCategory'])
             ->latest()
             ->paginate($perPage);
+
+        return $this->externalUserService->enrichWithUsers($pending, [
+            'requested_by' => 'Inputter',
+            'selected_authoriser_id' => 'Authoriser'
+        ]);
     }
 
     /**
@@ -43,6 +58,7 @@ class MarketCategoryService
      */
     public function createRequest(array $data): PendingMarketCategory
     {
+     
         return DB::transaction(function () use ($data) {
             $pending = PendingMarketCategory::create([
                 'name' => $data['name'],
@@ -50,11 +66,12 @@ class MarketCategoryService
                 'description' => $data['description'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
                 'request_type' => 'create',
-                'requested_by' => auth()->id(),
+                'requested_by' => $data['requested_by'],
+                'selected_authoriser_id' => $data['authoriser_id'],
                 'approval_status' => 'pending',
             ]);
 
-            $this->notifyAuthorisers($pending);
+            $this->notifySelectedAuthoriser($pending);
 
             return $pending;
         });
@@ -66,6 +83,9 @@ class MarketCategoryService
     public function updateRequest(MarketCategory $category, array $data): PendingMarketCategory
     {
         return DB::transaction(function () use ($category, $data) {
+            // Set the main category to pending_approval
+            $category->update(['approval_status' => 'pending_approval']);
+            
             $pending = PendingMarketCategory::create([
                 'market_category_id' => $category->id,
                 'name' => $data['name'] ?? $category->name,
@@ -73,11 +93,12 @@ class MarketCategoryService
                 'description' => $data['description'] ?? $category->description,
                 'is_active' => isset($data['is_active']) ? $data['is_active'] : $category->is_active,
                 'request_type' => 'update',
-                'requested_by' => auth()->id(),
+                'requested_by' => $data['requested_by'],
+                'selected_authoriser_id' => $data['authoriser_id'],
                 'approval_status' => 'pending',
             ]);
 
-            $this->notifyAuthorisers($pending);
+            $this->notifySelectedAuthoriser($pending);
 
             return $pending;
         });
@@ -86,19 +107,23 @@ class MarketCategoryService
     /**
      * Create a request to delete a market category.
      */
-    public function deleteRequest(MarketCategory $category): PendingMarketCategory
+    public function deleteRequest(MarketCategory $category, array $data): PendingMarketCategory
     {
-        return DB::transaction(function () use ($category) {
+        return DB::transaction(function () use ($category, $data) {
+            // Set the main category to pending_approval
+            $category->update(['approval_status' => 'pending_approval']);
+            
             $pending = PendingMarketCategory::create([
                 'market_category_id' => $category->id,
                 'name' => $category->name, // Snapshot for reference
                 'code' => $category->code,
                 'request_type' => 'delete',
-                'requested_by' => auth()->id(),
+                'requested_by' => $data['requested_by'],
+                'selected_authoriser_id' => $data['authoriser_id'],
                 'approval_status' => 'pending',
             ]);
 
-            $this->notifyAuthorisers($pending);
+             $this->notifySelectedAuthoriser($pending);
 
             return $pending;
         });
@@ -113,10 +138,7 @@ class MarketCategoryService
             throw new \Exception('Request is not pending.');
         }
 
-        // Prevent self-approval if enforced
-        if ($pending->requested_by === auth()->id()) {
-            throw new \Exception('You cannot approve your own request.');
-        }
+      
 
         return DB::transaction(function () use ($pending) {
             $result = null;
@@ -128,6 +150,7 @@ class MarketCategoryService
                         'code' => $pending->code,
                         'description' => $pending->description,
                         'is_active' => $pending->is_active,
+                        'approval_status' => 'active',
                     ]);
                     break;
 
@@ -139,6 +162,7 @@ class MarketCategoryService
                             'code' => $pending->code,
                             'description' => $pending->description,
                             'is_active' => $pending->is_active,
+                            'approval_status' => 'active',
                         ]);
                         $result = $category;
                     }
@@ -172,33 +196,35 @@ class MarketCategoryService
             throw new \Exception('Request is not pending.');
         }
 
-        // Prevent self-rejection if enforced
-        if ($pending->requested_by === auth()->id()) {
-            throw new \Exception('You cannot reject your own request.');
-        }
+        return DB::transaction(function () use ($pending, $reason) {
+            // Revert the main category approval_status back to active if it was an update/delete request
+            if (in_array($pending->request_type, ['update', 'delete']) && $pending->marketCategory) {
+                $pending->marketCategory->update(['approval_status' => 'active']);
+            }
 
-        $pending->update([
-            'approval_status' => 'rejected',
-            'rejection_reason' => $reason,
-        ]);
+            $pending->update([
+                'approval_status' => 'rejected',
+                'rejection_reason' => $reason,
+            ]);
 
-        // Notify Requester
-        $this->notifyRequester($pending, 'rejected');
+            // Notify Requester
+            $this->notifyRequester($pending, 'rejected');
 
-        return $pending;
+            return $pending;
+        });
     }
 
     /**
      * Notify authorisers.
      */
-    private function notifyAuthorisers(PendingMarketCategory $pending): void
+
+    private function notifySelectedAuthoriser(PendingMarketCategory $pending): void
     {
-        $authorisers = User::role(['authoriser', 'super_admin'])
-            ->where('is_active', true)
-            ->get();
-        
-        foreach ($authorisers as $authoriser) {
-            Mail::to($authoriser->email)->send(new \App\Mail\MarketCategoryRequestPending($pending));
+        $authoriser = $this->externalUserService->getUserById($pending->selected_authoriser_id);
+        $requester = $this->externalUserService->getUserById($pending->requested_by); // Need requester info for the email content
+
+        if ($authoriser && isset($authoriser['email'])) {
+             Mail::to($authoriser['email'])->send(new \App\Mail\MarketCategoryRequestPending($pending, $requester));
         }
     }
 
@@ -207,14 +233,16 @@ class MarketCategoryService
      */
     private function notifyRequester(PendingMarketCategory $pending, string $status): void
     {
-        if (!$pending->requester) {
+        $requester = $this->externalUserService->getUserById($pending->requested_by);
+        
+        if (!$requester || !isset($requester['email'])) {
             return;
         }
 
         if ($status === 'approved') {
-            Mail::to($pending->requester->email)->send(new \App\Mail\MarketCategoryRequestApproved($pending));
+            Mail::to($requester['email'])->send(new \App\Mail\MarketCategoryRequestApproved($pending, $requester));
         } elseif ($status === 'rejected') {
-            Mail::to($pending->requester->email)->send(new \App\Mail\MarketCategoryRequestRejected($pending, $pending->rejection_reason));
+            Mail::to($requester['email'])->send(new \App\Mail\MarketCategoryRequestRejected($pending, $pending->rejection_reason, $requester));
         }
     }
 }

@@ -15,13 +15,15 @@ class MarketCategoryRequestPending extends Mailable
 
     public $pending;
     public $dashboardUrl;
+    public $requester;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingMarketCategory $pending)
+    public function __construct(PendingMarketCategory $pending, $requester = null)
     {
         $this->pending = $pending;
+        $this->requester = $requester;
         
         // URL to the pending list page in Admin Dashboard
         $this->dashboardUrl = config('app.frontend_url', config('app.url')) . '/admin/market-categories/pending'; 

@@ -25,7 +25,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
+            'firstname' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'department' => 'nullable|string|max:255',
@@ -34,7 +34,7 @@ class UserController extends Controller
         ]);
 
         $user = User::create([
-            'first_name' => $validated['first_name'],
+            'firstname' => $validated['firstname'],
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
             'department' => $validated['department'],
@@ -57,7 +57,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
+            'firstname' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'department' => 'nullable|string',
@@ -65,7 +65,7 @@ class UserController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
-        $user->first_name = $validated['first_name'];
+        $user->firstname = $validated['firstname'];
         $user->last_name = $validated['last_name'];
         $user->email = $validated['email'];
         $user->department = $validated['department'];

@@ -16,6 +16,7 @@ class ProductType extends Model
         'code',
         'description',
         'is_active',
+        'approval_status',
     ];
 
     protected $casts = [

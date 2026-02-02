@@ -27,7 +27,7 @@ $ip = '127.0.0.1';
 // Create/Reset User
 $user = User::firstOrCreate(['email' => $email], [
     'password' => Hash::make($password),
-    'first_name' => 'Security',
+    'firstname' => 'Security',
     'last_name' => 'Test',
     'is_active' => true,
 ]);

@@ -238,7 +238,7 @@ php artisan test --coverage --filter=UserServiceTest
 ### Create User
 ```php
 $user = $userService->createUser([
-    'first_name' => 'John',
+    'firstname' => 'John',
     'last_name' => 'Doe',
     'email' => 'john@example.com',
     'department' => 'IT',
@@ -250,7 +250,7 @@ $user = $userService->createUser([
 ### Update User
 ```php
 $updatedUser = $userService->updateUser($user, [
-    'first_name' => 'Jane',
+    'firstname' => 'Jane',
     'role' => 'authoriser',
     'password' => 'NewPass123!', // Optional
 ]);

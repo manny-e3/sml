@@ -22,7 +22,7 @@ $service = new UserService();
 
 echo "Creating Pending User...\n";
 $pending = PendingUser::create([
-    'first_name' => 'Test',
+    'firstname' => 'Test',
     'last_name' => 'Pending',
     'email' => 'test.pending.' . time() . '@example.com',
     'role' => 'inputter',

@@ -10,7 +10,7 @@
 
 ### 2.1 Database Migrations
 - [x] Extended users table with custom fields
-  - first_name, last_name
+  - firstname, last_name
   - phone_number, department, employee_id
   - is_active, last_login_at
 - [x] Published Spatie Permission migrations
@@ -186,7 +186,7 @@
 ```sql
 - id
 - name
-- first_name ✅ NEW
+- firstname ✅ NEW
 - last_name ✅ NEW
 - email
 - email_verified_at

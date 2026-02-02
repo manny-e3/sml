@@ -48,7 +48,7 @@ class UserServiceTest extends TestCase
         $authoriser->assignRole('authoriser');
 
         $userData = [
-            'first_name' => 'John',
+            'firstname' => 'John',
             'last_name' => 'Doe',
             'email' => 'john.pending@example.com',
             'department' => 'IT',
@@ -61,7 +61,7 @@ class UserServiceTest extends TestCase
 
         // Assert
         $this->assertInstanceOf(PendingUser::class, $pendingUser);
-        $this->assertEquals('John', $pendingUser->first_name);
+        $this->assertEquals('John', $pendingUser->firstname);
         $this->assertEquals('pending', $pendingUser->approval_status);
         $this->assertEquals($inputter->id, $pendingUser->requested_by);
         
@@ -82,7 +82,7 @@ class UserServiceTest extends TestCase
         $this->actingAs($admin);
 
         $userData = [
-            'first_name' => 'Jane',
+            'firstname' => 'Jane',
             'last_name' => 'Admin',
             'email' => 'jane.admin@example.com',
             'department' => 'Finance',
@@ -95,7 +95,7 @@ class UserServiceTest extends TestCase
 
         // Assert
         $this->assertInstanceOf(User::class, $user);
-        $this->assertEquals('Jane', $user->first_name);
+        $this->assertEquals('Jane', $user->firstname);
         
         // Assert user IS in main users table
         $this->assertDatabaseHas('users', ['email' => 'jane.admin@example.com']);
@@ -114,7 +114,7 @@ class UserServiceTest extends TestCase
         $approver->assignRole('authoriser');
 
         $pendingUser = PendingUser::create([
-            'first_name' => 'Pending',
+            'firstname' => 'Pending',
             'last_name' => 'User',
             'email' => 'pending@example.com',
             'role' => 'inputter',
@@ -147,7 +147,7 @@ class UserServiceTest extends TestCase
         $approver = User::factory()->create();
         
         $pendingUser = PendingUser::create([
-            'first_name' => 'Reject',
+            'firstname' => 'Reject',
             'last_name' => 'Me',
             'email' => 'reject@example.com',
             'role' => 'inputter',
@@ -178,7 +178,7 @@ class UserServiceTest extends TestCase
         $user = User::factory()->create(); // Acts as requester AND approver
         
         $pendingUser = PendingUser::create([
-            'first_name' => 'Self',
+            'firstname' => 'Self',
             'last_name' => 'Approve',
             'email' => 'self@example.com',
             'role' => 'inputter',

@@ -145,7 +145,7 @@ class RoleAndPermissionSeeder extends Seeder
         // Create default Super Admin user
         $superAdmin = User::create([
             'name' => 'Super Admin',
-            'first_name' => 'Super',
+            'firstname' => 'Super',
             'last_name' => 'Admin',
             'email' => 'admin@fmdqgroup.com',
             'password' => Hash::make('password'), // Change this in production
@@ -160,7 +160,7 @@ class RoleAndPermissionSeeder extends Seeder
         // Create sample Inputter user
         $inputter = User::create([
             'name' => 'John Inputter',
-            'first_name' => 'John',
+            'firstname' => 'John',
             'last_name' => 'Inputter',
             'email' => 'inputter@fmdqgroup.com',
             'password' => Hash::make('password'), // Change this in production
@@ -175,7 +175,7 @@ class RoleAndPermissionSeeder extends Seeder
         // Create sample Authoriser user
         $authoriser = User::create([
             'name' => 'Jane Authoriser',
-            'first_name' => 'Jane',
+            'firstname' => 'Jane',
             'last_name' => 'Authoriser',
             'email' => 'authoriser@fmdqgroup.com',
             'password' => Hash::make('password'), // Change this in production

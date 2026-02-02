@@ -44,7 +44,7 @@ class UserService
             // If auto-approved (Super Admin), create directly in Users table
             if ($autoApprove) {
                 $user = User::create([
-                    'first_name' => $data['first_name'],
+                    'firstname' => $data['firstname'],
                     'last_name' => $data['last_name'],
                     'email' => $data['email'],
                     'department' => $data['department'] ?? null,
@@ -84,7 +84,7 @@ class UserService
             // The plan said "Password (Hashed, to be moved)". So let's hash it.
             
             $pendingUser = PendingUser::create([
-                'first_name' => $data['first_name'],
+                'firstname' => $data['firstname'],
                 'last_name' => $data['last_name'],
                 'email' => $data['email'],
                 'department' => $data['department'] ?? null,
@@ -134,7 +134,7 @@ class UserService
 
         try {
             // Update basic information
-            $user->first_name = $data['first_name'];
+            $user->firstname = $data['firstname'];
             $user->last_name = $data['last_name'];
             $user->email = $data['email'];
             $user->department = $data['department'] ?? null;
@@ -220,7 +220,7 @@ class UserService
     public function searchUsers(string $query, int $perPage = 15): LengthAwarePaginator
     {
         return User::where(function ($q) use ($query) {
-            $q->where('first_name', 'like', "%{$query}%")
+            $q->where('firstname', 'like', "%{$query}%")
               ->orWhere('last_name', 'like', "%{$query}%")
               ->orWhere('email', 'like', "%{$query}%");
         })
@@ -328,7 +328,7 @@ class UserService
             
             // Create the actual User
             $user = User::create([
-                'first_name' => $pendingUser->first_name,
+                'firstname' => $pendingUser->firstname,
                 'last_name' => $pendingUser->last_name,
                 'email' => $pendingUser->email,
                 'department' => $pendingUser->department,
@@ -409,7 +409,7 @@ class UserService
             
             // Actually, let's create a temporary User instance (not saved) to pass to mailer if we want to avoid modifying Mailables too much.
             $tempUser = new User();
-            $tempUser->first_name = $pendingUser->first_name;
+            $tempUser->firstname = $pendingUser->firstname;
             $tempUser->last_name = $pendingUser->last_name;
             $tempUser->email = $pendingUser->email;
             

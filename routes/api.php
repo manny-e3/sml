@@ -80,6 +80,39 @@ Route::prefix('v1')->group(function () {
             Route::get('pending-product-types', [\App\Http\Controllers\Api\Admin\ProductTypeController::class, 'pending']);
             Route::post('pending-product-types/{pendingProductType}/approve', [\App\Http\Controllers\Api\Admin\ProductTypeController::class, 'approve']);
             Route::post('pending-product-types/{pendingProductType}/reject', [\App\Http\Controllers\Api\Admin\ProductTypeController::class, 'reject']);
+
+            // Security Type Requests
+            Route::post('security-types/import', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'import']);
+            Route::post('security-types', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'store']);
+            Route::put('security-types/{securityType}', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'update']);
+            Route::delete('security-types/{securityType}', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'destroy']);
+             
+            // Security Types View
+            Route::get('security-types', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'index']);
+            Route::get('security-types/{securityType}', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'show']);
+
+            // Security Types Approval
+            Route::get('pending-security-types', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'pending']);
+            Route::post('pending-security-types/{pendingSecurityType}/approve', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'approve']);
+            Route::post('pending-security-types/{pendingSecurityType}/reject', [\App\Http\Controllers\Api\Admin\SecurityTypeController::class, 'reject']);
+          
+            // Security Master List Requests
+            Route::post('securities/import', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'import']);
+            Route::post('securities', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'store']);
+            Route::put('securities/{security}', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'update']);
+            Route::delete('securities/{security}', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'destroy']);
+             
+            // Security Master List View
+            Route::get('securities', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'index']);
+            Route::get('securities/{security}', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'show']);
+
+            // Security Master List Approval
+            Route::get('pending-securities', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'pending']);
+            Route::post('pending-securities/{pendingSecurity}/approve', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'approve']);
+            Route::post('pending-securities/{pendingSecurity}/reject', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'reject']);
+          
+            // Test endpoint for debugging external user service
+            Route::get('test-users', [\App\Http\Controllers\Api\Admin\TestUserServiceController::class, 'testUsers']);
           
         });
     });

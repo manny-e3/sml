@@ -19,6 +19,9 @@ class Security extends Model implements Auditable
         'security_name',
         'issuer',
         'issuer_category',
+        'issue_category',
+        'security_type_id',
+        'description',
         'issue_date',
         'maturity_date',
         'first_settlement_date',
@@ -26,19 +29,40 @@ class Security extends Model implements Auditable
         'face_value',
         'issue_price',
         'coupon_rate',
+        'coupon',
         'coupon_type',
         'coupon_frequency',
+        'frm',
+        'frb',
+        'frbv',
+        'coupon_floor',
+        'coupon_cap',
         'discount_rate',
         'tenor',
         'effective_coupon',
+        'fgn_benchmark_yield',
+        'issue_size',
         'ttm',
+        'day_count_convention',
         'day_count_basis',
+        'option_type',
+        'call_date',
+        'yield_at_issue',
+        'interest_determination_date',
         'outstanding_value',
         'amount_issued',
         'amount_outstanding',
         'rating_agency',
         'local_rating',
         'global_rating',
+        'rating_1_agency',
+        'rating_1',
+        'rating_1_issuance_date',
+        'rating_1_expiration_date',
+        'rating_2_agency',
+        'rating_2',
+        'rating_2_issuance_date',
+        'rating_2_expiration_date',
         'final_rating',
         'listing_status',
         'status',
@@ -54,17 +78,54 @@ class Security extends Model implements Auditable
         'maturity_date' => 'date',
         'first_settlement_date' => 'date',
         'last_trading_date' => 'date',
+        'call_date' => 'date',
+        'interest_determination_date' => 'date',
+        'rating_1_issuance_date' => 'date',
+        'rating_1_expiration_date' => 'date',
+        'rating_2_issuance_date' => 'date',
+        'rating_2_expiration_date' => 'date',
         'face_value' => 'decimal:2',
         'issue_price' => 'decimal:2',
+        'issue_size' => 'decimal:2',
         'coupon_rate' => 'decimal:4',
+        'coupon' => 'decimal:4',
+        'frm' => 'decimal:4',
+        'frbv' => 'decimal:4',
+        'coupon_floor' => 'decimal:4',
+        'coupon_cap' => 'decimal:4',
         'discount_rate' => 'decimal:4',
         'effective_coupon' => 'decimal:4',
+        'fgn_benchmark_yield' => 'decimal:4',
         'ttm' => 'decimal:4',
         'outstanding_value' => 'decimal:2',
         'amount_issued' => 'decimal:2',
         'amount_outstanding' => 'decimal:2',
+        'tenor' => 'integer',
+        'coupon_frequency' => 'integer',
+        'day_count_basis' => 'integer',
         'approved_at' => 'datetime',
     ];
+
+    /**
+     * Attributes to append to model's array form
+     */
+    protected $appends = ['product_type_name', 'security_type_name'];
+
+    /**
+     * Get the product type name
+     */
+    public function getProductTypeNameAttribute(): ?string
+    {
+        return $this->productType?->name;
+    }
+
+    /**
+     * Get the security type name
+     */
+    public function getSecurityTypeNameAttribute(): ?string
+    {
+        return $this->securityType?->name;
+    }
 
     /**
      * Get the product type that owns the security
@@ -72,6 +133,14 @@ class Security extends Model implements Auditable
     public function productType()
     {
         return $this->belongsTo(ProductType::class);
+    }
+
+    /**
+     * Get the security type that owns the security
+     */
+    public function securityType()
+    {
+        return $this->belongsTo(SecurityType::class);
     }
 
     /**

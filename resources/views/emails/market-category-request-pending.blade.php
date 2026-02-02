@@ -23,7 +23,7 @@
         </div>
         <div class="email-body">
             <h2>Hello, Authoriser</h2>
-            <p>A new request has been submitted by <strong>{{ $pending->requester->first_name ?? 'User' }} {{ $pending->requester->last_name ?? '' }}</strong> and is awaiting your approval.</p>
+            <p>A new request has been submitted by <strong>{{ $requester['firstname'] ?? 'User' }} {{ $requester['last_name'] ?? '' }}</strong> and is awaiting your approval.</p>
             
             <table class="details-table">
                 <tr>

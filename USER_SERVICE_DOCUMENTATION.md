@@ -76,7 +76,7 @@ public function createUser(array $data): User
 ```
 **Purpose**: Create a new user with role assignment  
 **Parameters**:
-- `first_name` (required)
+- `firstname` (required)
 - `last_name` (required)
 - `email` (required, unique)
 - `department` (optional)
@@ -92,7 +92,7 @@ public function createUser(array $data): User
 **Usage**:
 ```php
 $user = $userService->createUser([
-    'first_name' => 'John',
+    'firstname' => 'John',
     'last_name' => 'Doe',
     'email' => 'john@example.com',
     'department' => 'IT',
@@ -126,7 +126,7 @@ public function updateUser(User $user, array $data): User
 **Usage**:
 ```php
 $updatedUser = $userService->updateUser($user, [
-    'first_name' => 'Jane',
+    'firstname' => 'Jane',
     'last_name' => 'Smith',
     'email' => 'jane@example.com',
     'department' => 'Finance',
@@ -347,7 +347,7 @@ class CreateUserCommand extends Command
     public function handle()
     {
         $user = $this->userService->createUser([
-            'first_name' => $this->ask('First name'),
+            'firstname' => $this->ask('First name'),
             'last_name' => $this->ask('Last name'),
             'email' => $this->ask('Email'),
             'password' => $this->secret('Password'),
@@ -396,7 +396,7 @@ public function store(Request $request)
     $validated = $request->validate([...]);
     
     $user = User::create([
-        'first_name' => $validated['first_name'],
+        'firstname' => $validated['firstname'],
         'password' => Hash::make($validated['password']),
         // ...
     ]);

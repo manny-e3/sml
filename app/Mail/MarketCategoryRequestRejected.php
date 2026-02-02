@@ -15,14 +15,16 @@ class MarketCategoryRequestRejected extends Mailable
 
     public $pending;
     public $reason;
+    public $requester;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingMarketCategory $pending, string $reason)
+    public function __construct(PendingMarketCategory $pending, string $reason, $requester = null)
     {
         $this->pending = $pending;
         $this->reason = $reason;
+        $this->requester = $requester;
     }
 
     /**
