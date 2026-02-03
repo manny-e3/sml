@@ -111,6 +111,17 @@ Route::prefix('v1')->group(function () {
             Route::post('pending-securities/{pendingSecurity}/approve', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'approve']);
             Route::post('pending-securities/{pendingSecurity}/reject', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'reject']);
           
+            // Security Management Fields
+            Route::get('security-management/all', [\App\Http\Controllers\Api\Admin\SecurityManagementController::class, 'getAllFields']);
+            Route::get('security-management/category/{categoryId}', [\App\Http\Controllers\Api\Admin\SecurityManagementController::class, 'getFieldsByCategory']);
+
+            // Security Master Data
+            Route::get('security-master', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'index']);
+            Route::post('security-master', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'store']);
+            Route::get('security-master/{id}', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'show']);
+            Route::put('security-master/{id}', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'update']);
+            Route::delete('security-master/{id}', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'destroy']);
+          
             // Test endpoint for debugging external user service
             Route::get('test-users', [\App\Http\Controllers\Api\Admin\TestUserServiceController::class, 'testUsers']);
           

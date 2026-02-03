@@ -31,6 +31,14 @@ class MarketCategory extends Model
     }
 
     /**
+     * Get the security management fields for the market category
+     */
+    public function securityManagementFields()
+    {
+        return $this->hasMany(SecurityManagement::class, 'category_id');
+    }
+
+    /**
      * Scope to get only active market categories
      */
     public function scopeActive($query)
