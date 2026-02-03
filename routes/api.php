@@ -64,6 +64,7 @@ Route::prefix('v1')->group(function () {
 
             // Market Categories Approval
             Route::get('pending-market-categories', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'pending']);
+            Route::get('pending-market-categories/{pendingMarketCategory}', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'showPending']);
             Route::post('pending-market-categories/{pendingMarketCategory}/approve', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'approve']);
             Route::post('pending-market-categories/{pendingMarketCategory}/reject', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'reject']);
                 

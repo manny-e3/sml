@@ -371,6 +371,52 @@ class MarketCategoryController extends Controller
         return response()->json($pending);
     }
 
+    #[OA\Get(
+        path: "/api/v1/admin/pending-market-categories/{pendingMarketCategory}",
+        operationId: "getPendingMarketCategory",
+        summary: "Get Single Pending Market Category",
+        description: "Retrieve details of a single pending market category request",
+        tags: ["Market Category Approvals"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "pendingMarketCategory",
+                in: "path",
+                description: "Pending Market Category ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200, 
+                description: "Successful operation",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "id", type: "integer"),
+                        new OA\Property(property: "name", type: "string"),
+                        new OA\Property(property: "code", type: "string"),
+                        new OA\Property(property: "description", type: "string"),
+                        new OA\Property(property: "is_active", type: "boolean"),
+                        new OA\Property(property: "action_type", type: "string"),
+                        new OA\Property(property: "requested_by", type: "integer"),
+                        new OA\Property(property: "authoriser_id", type: "integer"),
+                        new OA\Property(property: "approval_status", type: "string"),
+                        new OA\Property(property: "created_at", type: "string"),
+                        new OA\Property(property: "updated_at", type: "string")
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: "Not found"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
+    public function showPending(PendingMarketCategory $pendingMarketCategory): JsonResponse
+    {
+        return response()->json($pendingMarketCategory);
+    }
+
     #[OA\Post(
         path: "/api/v1/admin/pending-market-categories/{pendingMarketCategory}/approve",
         operationId: "approveMarketCategory",
