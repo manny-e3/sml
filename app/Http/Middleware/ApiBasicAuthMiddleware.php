@@ -37,16 +37,16 @@ class ApiBasicAuthMiddleware
 
         list($username, $password) = explode(':', $credentials, 2);
 
-        // Get credentials from .env
-        $envUsername = env('APP_API_USERNAME');
-        $envPassword = env('APP_API_PASSWORD');
+        // Get credentials from config
+        $configUsername = config('api.basic_auth.username');
+        $configPassword = config('api.basic_auth.password');
 
-        if (!$envUsername || !$envPassword) {
+        if (!$configUsername || !$configPassword) {
             return response()->json(['message' => 'Server configuration error: API credentials not set.'], 500);
         }
 
-        // Validate against Env Credentials
-        if ($username !== $envUsername || $password !== $envPassword) {
+        // Validate against Config Credentials
+        if ($username !== $configUsername || $password !== $configPassword) {
             return response()->json(['message' => 'Invalid API credentials'], 401, ['WWW-Authenticate' => 'Basic']);
         }
 

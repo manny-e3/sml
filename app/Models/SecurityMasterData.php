@@ -12,6 +12,7 @@ class SecurityMasterData extends Model
         'category_id',
         'security_name',
         'status',
+        'approval_status',
         'created_by',
         'updated_by',
     ];

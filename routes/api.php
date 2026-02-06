@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function () {
             // Market Categories Approval
             Route::get('pending-market-categories', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'pending']);
             Route::get('pending-market-categories/{pendingMarketCategory}', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'showPending']);
+            Route::get('pending-market-categories/{pendingMarketCategory}/compare', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'showPendingWithComparison']);
             Route::post('pending-market-categories/{pendingMarketCategory}/approve', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'approve']);
             Route::post('pending-market-categories/{pendingMarketCategory}/reject', [\App\Http\Controllers\Api\Admin\MarketCategoryController::class, 'reject']);
                 
@@ -79,6 +80,8 @@ Route::prefix('v1')->group(function () {
 
             // Product Types Approval
             Route::get('pending-product-types', [\App\Http\Controllers\Api\Admin\ProductTypeController::class, 'pending']);
+            Route::get('pending-product-types/{pendingProductType}', [\App\Http\Controllers\Api\Admin\ProductTypeController::class, 'showPending']);
+            Route::get('pending-product-types/{pendingProductType}/compare', [\App\Http\Controllers\Api\Admin\ProductTypeController::class, 'showPendingWithComparison']);
             Route::post('pending-product-types/{pendingProductType}/approve', [\App\Http\Controllers\Api\Admin\ProductTypeController::class, 'approve']);
             Route::post('pending-product-types/{pendingProductType}/reject', [\App\Http\Controllers\Api\Admin\ProductTypeController::class, 'reject']);
 
@@ -117,11 +120,32 @@ Route::prefix('v1')->group(function () {
             Route::get('security-management/category/{categoryId}', [\App\Http\Controllers\Api\Admin\SecurityManagementController::class, 'getFieldsByCategory']);
 
             // Security Master Data
+            Route::post('security-master/bulk-upload', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'bulkUpload']);
             Route::get('security-master', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'index']);
             Route::post('security-master', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'store']);
             Route::get('security-master/{id}', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'show']);
             Route::put('security-master/{id}', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'update']);
             Route::delete('security-master/{id}', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'destroy']);
+            
+            // Security Master Data Approval
+            Route::get('pending-security-master', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'pending']);
+            Route::get('pending-security-master/{pendingSecurity}', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'showPending']);
+            Route::get('pending-security-master/{pendingSecurity}/compare', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'showPendingWithComparison']);
+            Route::post('pending-security-master/{pendingSecurity}/approve', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'approve']);
+            Route::post('pending-security-master/{pendingSecurity}/reject', [\App\Http\Controllers\Api\Admin\SecurityMasterDataController::class, 'reject']);
+          
+               // Auction Results
+            Route::apiResource('auction-results', AuctionResultController::class);
+        
+
+            // Auction Results (Admin)
+            Route::post('auction-results/bulk-upload', [\App\Http\Controllers\Api\AuctionResultController::class, 'bulkUpload']);
+            
+            // Auction Results Approval
+            Route::get('pending-auction-results', [\App\Http\Controllers\Api\AuctionResultController::class, 'pending']);
+            Route::get('pending-auction-results/{pendingAuctionResult}', [\App\Http\Controllers\Api\AuctionResultController::class, 'showPending']);
+            Route::post('pending-auction-results/{pendingAuctionResult}/approve', [\App\Http\Controllers\Api\AuctionResultController::class, 'approve']);
+            Route::post('pending-auction-results/{pendingAuctionResult}/reject', [\App\Http\Controllers\Api\AuctionResultController::class, 'reject']);
           
             // Test endpoint for debugging external user service
             Route::get('test-users', [\App\Http\Controllers\Api\Admin\TestUserServiceController::class, 'testUsers']);

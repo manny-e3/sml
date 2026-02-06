@@ -5,15 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use OwenIt\Auditing\Contracts\Auditable;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
 
-class AuctionResult extends Model implements Auditable
+class PendingAuctionResult extends Model
 {
-    use HasFactory, SoftDeletes, \OwenIt\Auditing\Auditable, LogsActivity;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'auction_result_id',
         'security_id',
         'auction_number',
         'auction_date',
@@ -34,10 +32,11 @@ class AuctionResult extends Model implements Auditable
         'auction_type',
         'status',
         'remarks',
-        'created_by',
-        'updated_by',
-        'approved_by',
-        'approved_at',
+        'request_type',
+        'requested_by',
+        'selected_authoriser_id',
+        'approval_status',
+        'rejection_reason',
     ];
 
     protected $casts = [
@@ -54,38 +53,25 @@ class AuctionResult extends Model implements Auditable
         'true_yield' => 'decimal:4',
         'bid_cover_ratio' => 'decimal:4',
         'subscription_level' => 'decimal:2',
-        'approved_at' => 'datetime',
     ];
 
     public function security()
     {
-        return $this->belongsTo(SecurityMasterData::class, 'security_id');
+        return $this->belongsTo(Security::class);
     }
 
-    public function creator()
+    public function mainRecord()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(AuctionResult::class, 'auction_result_id');
     }
 
-    public function calculateRatios()
+    public function requester()
     {
-        // Bid Cover Ratio = Amount Subscribed / Total Amount Sold (or Allotted?)
-        // Usually: Total Bids / Total Sold
-        if ($this->total_amount_sold > 0) {
-            $this->bid_cover_ratio = $this->amount_subscribed / $this->total_amount_sold;
-        }
-
-        // Subscription Level = (Amount Subscribed / Amount Offered) * 100
-        if ($this->amount_offered > 0) {
-            $this->subscription_level = ($this->amount_subscribed / $this->amount_offered) * 100;
-        }
+        return $this->belongsTo(User::class, 'requested_by');
     }
 
-    public function getActivitylogOptions(): LogOptions
+    public function approver()
     {
-        return LogOptions::defaults()
-            ->logAll()
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+        return $this->belongsTo(User::class, 'selected_authoriser_id');
     }
 }

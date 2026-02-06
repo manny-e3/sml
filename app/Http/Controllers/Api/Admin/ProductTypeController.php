@@ -300,6 +300,133 @@ class ProductTypeController extends Controller
         return response()->json($pending);
     }
 
+    #[OA\Get(
+        path: "/api/v1/admin/pending-product-types/{pendingProductType}",
+        operationId: "getPendingProductType",
+        summary: "Get Single Pending Product Type",
+        description: "Retrieve details of a single pending product type request",
+        tags: ["Product Type Approvals"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "pendingProductType",
+                in: "path",
+                description: "Pending Product Type ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200, 
+                description: "Successful operation",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "id", type: "integer"),
+                        new OA\Property(property: "market_category_id", type: "integer"),
+                        new OA\Property(property: "name", type: "string"),
+                        new OA\Property(property: "code", type: "string"),
+                        new OA\Property(property: "description", type: "string"),
+                        new OA\Property(property: "is_active", type: "boolean"),
+                        new OA\Property(property: "action_type", type: "string"),
+                        new OA\Property(property: "requested_by", type: "integer"),
+                        new OA\Property(property: "authoriser_id", type: "integer"),
+                        new OA\Property(property: "approval_status", type: "string"),
+                        new OA\Property(property: "created_at", type: "string"),
+                        new OA\Property(property: "updated_at", type: "string")
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: "Not found"),
+            new OA\Response(response: 401, description: "Unauthenticated")
+        ]
+    )]
+    public function showPending(PendingProductType $pendingProductType): JsonResponse
+    {
+        return response()->json($pendingProductType);
+    }
+
+    #[OA\Get(
+        path: "/api/v1/admin/pending-product-types/{pendingProductType}/compare",
+        operationId: "comparePendingProductType",
+        summary: "Compare Pending Product Type Changes",
+        description: "Retrieve changes between old and new data for update requests",
+        tags: ["Product Type Approvals"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "pendingProductType",
+                in: "path",
+                description: "Pending Product Type ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200, 
+                description: "Successful operation",
+                content: new OA\JsonContent(
+                    type: "object",
+                    description: "Object containing only the fields that changed"
+                )
+            ),
+            new OA\Response(response: 404, description: "Not found"),
+            new OA\Response(response: 401, description: "Unauthenticated")
+        ]
+    )]
+    public function showPendingWithComparison(PendingProductType $pendingProductType): JsonResponse
+    {
+        $changes = [];
+
+        // For update and delete requests, fetch the current data
+        if (in_array($pendingProductType->request_type, ['update', 'delete']) && $pendingProductType->product_type_id) {
+            $currentData = ProductType::find($pendingProductType->product_type_id);
+            
+            if ($currentData) {
+                // Calculate changes for update requests
+                if ($pendingProductType->request_type === 'update') {
+                    if ($currentData->market_category_id !== $pendingProductType->market_category_id) {
+                        $changes['market_category_id'] = [
+                            'old' => $currentData->market_category_id,
+                            'new' => $pendingProductType->market_category_id
+                        ];
+                    }
+
+                    if ($currentData->name !== $pendingProductType->name) {
+                        $changes['name'] = [
+                            'old' => $currentData->name,
+                            'new' => $pendingProductType->name
+                        ];
+                    }
+                    
+                    if ($currentData->code !== $pendingProductType->code) {
+                        $changes['code'] = [
+                            'old' => $currentData->code,
+                            'new' => $pendingProductType->code
+                        ];
+                    }
+                    
+                    if ($currentData->description !== $pendingProductType->description) {
+                        $changes['description'] = [
+                            'old' => $currentData->description,
+                            'new' => $pendingProductType->description
+                        ];
+                    }
+                    
+                    if ($currentData->is_active !== $pendingProductType->is_active) {
+                        $changes['is_active'] = [
+                            'old' => $currentData->is_active,
+                            'new' => $pendingProductType->is_active
+                        ];
+                    }
+                }
+            }
+        }
+
+        return response()->json($changes);
+    }
+
     #[OA\Post(
         path: "/api/v1/admin/pending-product-types/{pendingProductType}/approve",
         operationId: "approveProductType",

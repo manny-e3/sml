@@ -378,7 +378,7 @@ class MarketCategoryController extends Controller
         description: "Retrieve details of a single pending market category request",
         tags: ["Market Category Approvals"],
         security: [["bearerAuth" => []]],
-        parameters: [
+        parameters: [   
             new OA\Parameter(
                 name: "pendingMarketCategory",
                 in: "path",
@@ -415,6 +415,97 @@ class MarketCategoryController extends Controller
     public function showPending(PendingMarketCategory $pendingMarketCategory): JsonResponse
     {
         return response()->json($pendingMarketCategory);
+    }
+
+    #[OA\Get(
+        path: "/api/v1/admin/pending-market-categories/{pendingMarketCategory}/compare",
+        operationId: "comparePendingMarketCategory",
+        summary: "Compare Pending Market Category Changes",
+        description: "Retrieve both old (current) and new (pending) data for update requests to show what will change",
+        tags: ["Market Category Approvals"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "pendingMarketCategory",
+                in: "path",
+                description: "Pending Market Category ID",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200, 
+                description: "Successful operation",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "action_type", type: "string", example: "update"),
+                        new OA\Property(property: "pending_request", type: "object"),
+                        new OA\Property(
+                            property: "old_data",
+                            type: "object",
+                            description: "Current data from main table (null for create requests)"
+                        ),
+                        new OA\Property(
+                            property: "new_data",
+                            type: "object",
+                            description: "Proposed changes from pending request"
+                        ),
+                        new OA\Property(
+                            property: "changes",
+                            type: "object",
+                            description: "Fields that will be changed (only for update requests)"
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: "Not found"),
+            new OA\Response(response: 401, description: "Unauthenticated")
+        ]
+    )]
+    public function showPendingWithComparison(PendingMarketCategory $pendingMarketCategory): JsonResponse
+    {
+        $changes = [];
+
+        // For update and delete requests, fetch the current data
+        if (in_array($pendingMarketCategory->request_type, ['update', 'delete']) && $pendingMarketCategory->market_category_id) {
+            $currentData = MarketCategory::find($pendingMarketCategory->market_category_id);
+            
+            if ($currentData) {
+                // Calculate changes for update requests
+                if ($pendingMarketCategory->request_type === 'update') {
+                    if ($currentData->name !== $pendingMarketCategory->name) {
+                        $changes['name'] = [
+                            'old' => $currentData->name,
+                            'new' => $pendingMarketCategory->name
+                        ];
+                    }
+                    
+                    if ($currentData->code !== $pendingMarketCategory->code) {
+                        $changes['code'] = [
+                            'old' => $currentData->code,
+                            'new' => $pendingMarketCategory->code
+                        ];
+                    }
+                    
+                    if ($currentData->description !== $pendingMarketCategory->description) {
+                        $changes['description'] = [
+                            'old' => $currentData->description,
+                            'new' => $pendingMarketCategory->description
+                        ];
+                    }
+                    
+                    if ($currentData->is_active !== $pendingMarketCategory->is_active) {
+                        $changes['is_active'] = [
+                            'old' => $currentData->is_active,
+                            'new' => $pendingMarketCategory->is_active
+                        ];
+                    }
+                }
+            }
+        }
+
+        return response()->json($changes);
     }
 
     #[OA\Post(

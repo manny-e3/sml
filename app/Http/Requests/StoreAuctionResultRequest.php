@@ -14,7 +14,7 @@ class StoreAuctionResultRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'security_id' => 'required|exists:securities,id',
+            'security_id' => 'required|exists:security_master_data,id',
             'auction_number' => 'required|string|unique:auction_results,auction_number',
             'auction_date' => 'required|date',
             'value_date' => 'required|date|after_or_equal:auction_date',
@@ -33,6 +33,8 @@ class StoreAuctionResultRequest extends FormRequest
             'auction_type' => 'required|string|in:Primary,Secondary',
             'status' => 'required|string|in:Completed,Reopened,Cancelled',
             'remarks' => 'nullable|string',
+            'requested_by' => 'nullable|integer',
+            'authoriser_id' => 'nullable|integer',
         ];
     }
 }
