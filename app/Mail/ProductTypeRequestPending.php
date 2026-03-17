@@ -15,13 +15,15 @@ class ProductTypeRequestPending extends Mailable
 
     public $pending;
     public $dashboardUrl;
+    public $recipientName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingProductType $pending)
+    public function __construct(PendingProductType $pending, $recipientName = 'Authoriser')
     {
         $this->pending = $pending;
+        $this->recipientName = $recipientName;
         
         // URL to the pending list page in Admin Dashboard
         $this->dashboardUrl = config('app.frontend_url', config('app.url')) . '/admin/product-types/pending'; 
@@ -34,7 +36,7 @@ class ProductTypeRequestPending extends Mailable
     {
         $type = ucfirst($this->pending->request_type);
         return new Envelope(
-            subject: "Action Required: New Product Type Request ({$type}) - " . config('app.name'),
+            subject: "Action Required: Product Type Request" ,
         );
     }
 

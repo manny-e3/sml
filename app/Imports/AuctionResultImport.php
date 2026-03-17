@@ -8,13 +8,21 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
+use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
+use Maatwebsite\Excel\Validators\Failure;
+use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Illuminate\Support\Facades\Log;
 
-class AuctionResultImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
+class AuctionResultImport implements \Maatwebsite\Excel\Concerns\ToCollection, \Maatwebsite\Excel\Concerns\WithHeadingRow, \Maatwebsite\Excel\Concerns\SkipsEmptyRows, \Maatwebsite\Excel\Concerns\WithValidation, \Maatwebsite\Excel\Concerns\SkipsOnFailure, \Maatwebsite\Excel\Concerns\WithMapping
 {
+    use SkipsFailures;
     protected $service;
     protected $createdBy;
-    protected $authoriserId;
+    protected $authoriser_id;
+    protected $errors = [];
+    protected $successCount = 0;
+    protected $errorCount = 0;
 
     public function __construct(
         AuctionResultService $service,
@@ -26,11 +34,43 @@ class AuctionResultImport implements ToCollection, WithHeadingRow, SkipsEmptyRow
         $this->authoriserId = $authoriserId;
     }
 
+    public function map($row): array
+    {
+        if (isset($row['auction_date']) && is_numeric($row['auction_date'])) {
+             $row['auction_date'] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row['auction_date'])->format('Y-m-d');
+        }
+        if (isset($row['value_date']) && is_numeric($row['value_date'])) {
+             $row['value_date'] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row['value_date'])->format('Y-m-d');
+        }
+        return $row;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'security_id' => 'nullable|exists:security_master_data,id',
+            'isin' => 'nullable|string',
+            'security_name' => 'nullable|string',
+            'auction_number' => 'required|string',
+            'auction_date' => 'required|date',
+            'value_date' => 'required|date',
+            'tenor' => 'nullable|integer|min:0',
+            'tenor_days' => 'nullable|integer|min:0',
+            'amount_offered' => 'required|numeric|min:0',
+            'amount_subscribed' => 'required|numeric|min:0',
+            'amount_allotted' => 'nullable|numeric|min:0',
+            'amount_sold' => 'required|numeric|min:0',
+            'non_competitive_sales' => 'nullable|numeric|min:0',
+            'stop_rate' => 'required|numeric|min:0',
+            'marginal_rate' => 'nullable|numeric|min:0',
+            'true_yield' => 'nullable|numeric|min:0',
+            'status' => 'nullable|string|in:Completed,Reopened,Cancelled',
+        ];
+    }
+
     public function collection(Collection $rows)
     {
         $rowNumber = 1; 
-        $successCount = 0;
-        $errorCount = 0;
 
         // Pre-fetch securities to minimize queries? 
         // Or just query individually (simpler for now if list is not huge).
@@ -39,16 +79,37 @@ class AuctionResultImport implements ToCollection, WithHeadingRow, SkipsEmptyRow
 
         foreach ($rows as $row) {
             $rowNumber++;
+            
+            // Basic check if row is actually empty despite SkipsEmptyRows
+            if (empty(array_filter($row->toArray()))) {
+                continue;
+            }
+
             try {
                 $this->processRow($row, $rowNumber);
-                $successCount++;
+                $this->successCount++;
             } catch (\Exception $e) {
-                $errorCount++;
-                Log::error("Auction Result Import Error Row {$rowNumber}: " . $e->getMessage());
+                $this->errorCount++;
+                $errorMessage = "Row {$rowNumber}: " . $e->getMessage();
+                $this->errors[] = $errorMessage;
+                Log::error("Auction Result Import Error " . $errorMessage);
             }
         }
 
-        Log::info("Auction Import completed: {$successCount} successful, {$errorCount} errors.");
+        Log::info("Auction Import completed: {$this->successCount} successful, {$this->errorCount} errors.");
+    }
+
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
+    public function getCounts(): array
+    {
+        return [
+            'success' => $this->successCount,
+            'errors' => $this->errorCount,
+        ];
     }
 
     protected function processRow($row, $rowNumber)
@@ -68,10 +129,25 @@ class AuctionResultImport implements ToCollection, WithHeadingRow, SkipsEmptyRow
         }
 
         if (!$security) {
-            throw new \Exception("Security not found for: " . ($row['security_id'] ?? $row['security_name'] ?? $row['isin'] ?? 'Unknown'));
+            $identifier = $row['security_id'] ?? $row['security_name'] ?? $row['isin'] ?? 'Unknown';
+            throw new \Exception("Security not found for identifier: {$identifier}. Please ensure the security exists in the Security Master.");
         }
 
-        // 2. Prepare Data
+        // 2. Validate uniqueness of auction_number for this security if needed
+        // Though auction_number is usually unique globally based on request
+        $exists = \App\Models\AuctionResult::where('auction_number', $row['auction_number'])->exists();
+        if ($exists) {
+             throw new \Exception("Auction number '{$row['auction_number']}' already exists in the system.");
+        }
+        
+        $pendingExists = \App\Models\PendingAuctionResult::where('auction_number', $row['auction_number'])
+            ->where('approval_status', 'pending')
+            ->exists();
+        if ($pendingExists) {
+            throw new \Exception("A pending request for auction number '{$row['auction_number']}' is already awaiting approval.");
+        }
+
+        // 3. Prepare Data
         $data = [
             'security_id' => $security->id,
             'created_by' => $this->createdBy,

@@ -1,0 +1,8 @@
+ERROR: The field 'Issue Category' is required.
+#0 C:\xampp\htdocs\smlars\app\Services\SecurityMasterDataService.php(287): Illuminate\Validation\ValidationException::withMessages(Array)
+#1 C:\xampp\htdocs\smlars\app\Services\SecurityMasterDataService.php(276): App\Services\SecurityMasterDataService->validateRequiredFields(Object(Illuminate\Database\Eloquent\Collection), Array)
+#2 C:\xampp\htdocs\smlars\app\Services\SecurityMasterDataService.php(51): App\Services\SecurityMasterDataService->validateFields(1, Array)
+#3 C:\xampp\htdocs\smlars\app\Imports\SecurityMasterImport.php(129): App\Services\SecurityMasterDataService->createRequest(Array)
+#4 [internal function]: App\Imports\SecurityMasterImport->processRow(Array, 2)
+#5 C:\xampp\htdocs\smlars\tests\repro_import.php(55): ReflectionMethod->invokeArgs(Object(App\Imports\SecurityMasterImport), Array)
+#6 {main}

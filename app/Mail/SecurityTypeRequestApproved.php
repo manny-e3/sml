@@ -14,13 +14,15 @@ class SecurityTypeRequestApproved extends Mailable
     use Queueable, SerializesModels;
 
     public $pending;
+    public $recipientName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingSecurityType $pending)
+    public function __construct(PendingSecurityType $pending, $recipientName = 'Inputter')
     {
         $this->pending = $pending;
+        $this->recipientName = $recipientName;
     }
 
     /**

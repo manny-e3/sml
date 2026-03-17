@@ -221,10 +221,17 @@ class MarketCategoryService
     private function notifySelectedAuthoriser(PendingMarketCategory $pending): void
     {
         $authoriser = $this->externalUserService->getUserById($pending->selected_authoriser_id);
-        $requester = $this->externalUserService->getUserById($pending->requested_by); // Need requester info for the email content
+        $requester = $this->externalUserService->getUserById($pending->requested_by);
 
         if ($authoriser && isset($authoriser['email'])) {
-             Mail::to($authoriser['email'])->send(new \App\Mail\MarketCategoryRequestPending($pending, $requester));
+             \Log::info('Sending Market Category Pending email', [
+                 'to' => $authoriser['email'],
+                 'recipient_name' => $authoriser['name'] ?? 'Authoriser',
+                 'requester_found' => $requester !== null,
+                 'pending_id' => $pending->id
+             ]);
+             Mail::to($authoriser['email'], $authoriser['name'] ?? null)
+                ->send(new \App\Mail\MarketCategoryRequestPending($pending, $requester, $authoriser['name'] ?? 'Authoriser'));
         }
     }
 
@@ -240,9 +247,11 @@ class MarketCategoryService
         }
 
         if ($status === 'approved') {
-            Mail::to($requester['email'])->send(new \App\Mail\MarketCategoryRequestApproved($pending, $requester));
+            Mail::to($requester['email'], $requester['name'] ?? null)
+                ->send(new \App\Mail\MarketCategoryRequestApproved($pending, $requester, $requester['name'] ?? 'Inputter'));
         } elseif ($status === 'rejected') {
-            Mail::to($requester['email'])->send(new \App\Mail\MarketCategoryRequestRejected($pending, $pending->rejection_reason, $requester));
+            Mail::to($requester['email'], $requester['name'] ?? null)
+                ->send(new \App\Mail\MarketCategoryRequestRejected($pending, $pending->rejection_reason, $requester, $requester['name'] ?? 'Inputter'));
         }
     }
 }

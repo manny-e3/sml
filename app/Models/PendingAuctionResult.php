@@ -57,7 +57,7 @@ class PendingAuctionResult extends Model
 
     public function security()
     {
-        return $this->belongsTo(Security::class);
+        return $this->belongsTo(SecurityMasterData::class, 'security_id');
     }
 
     public function mainRecord()

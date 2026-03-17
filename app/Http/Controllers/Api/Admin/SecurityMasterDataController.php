@@ -13,10 +13,12 @@ use OpenApi\Attributes as OA;
 class SecurityMasterDataController extends Controller
 {
     protected $securityMasterService;
+    protected $externalUserService;
 
-    public function __construct(SecurityMasterDataService $securityMasterService)
+    public function __construct(SecurityMasterDataService $securityMasterService, \App\Services\ExternalUserService $externalUserService)
     {
         $this->securityMasterService = $securityMasterService;
+        $this->externalUserService = $externalUserService;
     }
 
     /**
@@ -46,6 +48,37 @@ class SecurityMasterDataController extends Controller
         
         $securities = $this->securityMasterService->getAllSecurities($perPage, $categoryId);
         
+        $users = $this->externalUserService->getAllUsers();
+        
+        $securities->getCollection()->transform(function ($security) use ($users) {
+            $creator = $users->get($security->created_by);
+            $creatorName = $creator ? trim(($creator['firstname'] ?? '') . ' ' . ($creator['lastname'] ?? '')) : null;
+
+            return [
+                'id' => $security->id,
+                'security_name' => $security->security_name,
+                'category' => [
+                    'id' => $security->category->id,
+                    'name' => $security->category->name,
+                ],
+                'product' => $security->productType ? [
+                    'id' => $security->productType->id,
+                    'name' => $security->productType->name,
+                ] : null,
+                'status' => $security->status,
+                'created_by' => $security->created_by,
+                'created_by_name' => $creatorName,
+                'approval_status' => $security->approval_status,
+                'fields' => $security->fieldValues->map(function ($value) {
+                    return [
+                        'field_id' => $value->field_id,
+                        'field_name' => $value->field->field_name ?? null,
+                        'value' => $value->field_value,
+                    ];
+                }),
+            ];
+        });
+        
         return response()->json($securities);
     }
 
@@ -62,10 +95,10 @@ class SecurityMasterDataController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["category_id", "security_name", "fields", "authoriser_id"],
+                required: ["category_id", "product_id", "fields", "authoriser_id"],
                 properties: [
                     new OA\Property(property: "category_id", type: "integer"),
-                    new OA\Property(property: "security_name", type: "string"),
+                    new OA\Property(property: "product_id", type: "integer"),
                     new OA\Property(property: "fields", type: "array", items: new OA\Items(properties: [
                         new OA\Property(property: "field_id", type: "integer"),
                         new OA\Property(property: "field_value", type: "string")
@@ -85,7 +118,7 @@ class SecurityMasterDataController extends Controller
     {
         $validated = $request->validate([
             'category_id' => 'required|exists:market_categories,id',
-            'security_name' => 'required|string|max:255',
+            'product_id' => 'required|exists:product_types,id',
             'fields' => 'required|array',
             'fields.*.field_id' => 'required|exists:security_management,id',
             'fields.*.field_value' => 'nullable',
@@ -146,6 +179,7 @@ class SecurityMasterDataController extends Controller
         parameters: [new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))],
         requestBody: new OA\RequestBody(content: new OA\JsonContent(properties: [
             new OA\Property(property: "security_name", type: "string"),
+            new OA\Property(property: "product_id", type: "integer"),
             new OA\Property(property: "fields", type: "array", items: new OA\Items(properties: [
                 new OA\Property(property: "field_id", type: "integer"),
                 new OA\Property(property: "field_value", type: "string")
@@ -162,6 +196,7 @@ class SecurityMasterDataController extends Controller
     {
         $validated = $request->validate([
             'security_name' => 'sometimes|string|max:255',
+            'product_id' => 'sometimes|exists:product_types,id',
             'fields' => 'sometimes|array',
             'fields.*.field_id' => 'required|exists:security_management,id',
             'fields.*.field_value' => 'nullable',
@@ -234,6 +269,39 @@ class SecurityMasterDataController extends Controller
     {
         $perPage = $request->get('per_page', 15);
         $pending = $this->securityMasterService->getPendingRequests($perPage);
+
+        // Fetch all field names once to avoid N+1
+        $fieldIds = $pending->getCollection()->pluck('fields_data.*.field_id')->flatten()->unique();
+        $fields = \App\Models\SecurityManagement::whereIn('id', $fieldIds)->pluck('field_name', 'id');
+
+        $pending->getCollection()->transform(function ($item) use ($fields) {
+            $data = [
+                'id' => $item->id,
+                'category_id' => $item->category_id,
+                'category_name' => $item->category->name ?? null,
+                'product_id' => $item->product_id,
+                'product_name' => $item->productType->name ?? null,
+                'security_name' => $item->security_name,
+                'status' => $item->status,
+                'request_type' => $item->request_type,
+                'approval_status' => $item->approval_status,
+                'fields_data' => $item->fields_data,
+                'created_at' => $item->created_at,
+                'requested_by' => $item->requested_by,
+                'requester_name' => $item->requester ? ($item->requester->first_name . ' ' . $item->requester->last_name) : null,
+                'rejection_reason' => $item->rejection_reason,
+            ];
+            
+            if (!empty($data['fields_data'])) {
+                $data['fields_data'] = collect($data['fields_data'])->map(function ($field) use ($fields) {
+                    $field['field_name'] = $fields[$field['field_id']] ?? null;
+                    return $field;
+                })->toArray();
+            }
+            
+            return $data;
+        });
+
         return response()->json($pending);
     }
 
@@ -379,6 +447,7 @@ class SecurityMasterDataController extends Controller
                 new \App\Imports\SecurityMasterImport(
                     $this->securityMasterService,
                     $request->category_id,
+                    $request->product_id, // Pass product_id
                     $request->created_by,
                     $request->authoriser_id
                 ),
@@ -388,6 +457,11 @@ class SecurityMasterDataController extends Controller
             return response()->json([
                 'message' => 'Bulk upload processed successfully. Valid records have been submitted for approval.'
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed for some records in the file.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Import failed: ' . $e->getMessage()], 500);
         }

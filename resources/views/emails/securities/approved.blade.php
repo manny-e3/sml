@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Security Request Approved</title>
+    <title>Security Request Rejected</title>
 </head>
 <body>
-    <h2>Security Request Approved</h2>
-    <p>Hello {{ $pending->requester->firstname ?? 'User' }},</p>
+    <h2>Security Request Rejected</h2>
+    <p>Hello {{ $recipientName }},</p>
     
-    <p>Your Security request has been <strong>approved</strong> by {{ $pending->selectedAuthoriser->firstname ?? 'Authoriser' }} {{ $pending->selectedAuthoriser->last_name ?? '' }}.</p>
+    <p>Your Security request has been <strong>rejected</strong>.</p>
     
     <p><strong>Request Details:</strong></p>
     <ul>

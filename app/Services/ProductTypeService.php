@@ -39,8 +39,7 @@ class ProductTypeService
      */
     public function getPendingRequests(int $perPage = 15): LengthAwarePaginator
     {
-        $pending = PendingProductType::where('approval_status', 'pending')
-            ->with(['requester', 'selectedAuthoriser', 'productType', 'marketCategory'])
+        $pending = PendingProductType::with(['requester', 'selectedAuthoriser', 'productType', 'marketCategory'])
             ->latest()
             ->paginate($perPage);
 
@@ -220,7 +219,8 @@ class ProductTypeService
     {
         $authoriser = $this->externalUserService->getUserById($pending->selected_authoriser_id);
         if ($authoriser && isset($authoriser['email'])) {
-             Mail::to($authoriser['email'])->send(new \App\Mail\ProductTypeRequestPending($pending));
+             Mail::to($authoriser['email'], $authoriser['name'] ?? null)
+                ->send(new \App\Mail\ProductTypeRequestPending($pending, $authoriser['name'] ?? 'Authoriser'));
         }
     }
 
@@ -236,9 +236,11 @@ class ProductTypeService
         }
 
         if ($status === 'approved') {
-            Mail::to($requester['email'])->send(new \App\Mail\ProductTypeRequestApproved($pending));
+            Mail::to($requester['email'], $requester['name'] ?? null)
+                ->send(new \App\Mail\ProductTypeRequestApproved($pending, $requester['name'] ?? 'Inputter'));
         } elseif ($status === 'rejected') {
-            Mail::to($requester['email'])->send(new \App\Mail\ProductTypeRequestRejected($pending, $pending->rejection_reason));
+            Mail::to($requester['email'], $requester['name'] ?? null)
+                ->send(new \App\Mail\ProductTypeRequestRejected($pending, $pending->rejection_reason, $requester['name'] ?? 'Inputter'));
         }
     }
 }

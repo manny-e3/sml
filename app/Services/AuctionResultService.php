@@ -25,7 +25,7 @@ class AuctionResultService
      */
     public function getPendingRequests(int $perPage = 15)
     {
-        $pending = PendingAuctionResult::with(['requester', 'security', 'mainRecord'])
+        $pending = PendingAuctionResult::with(['requester', 'security.fieldValues', 'mainRecord'])
             ->latest()
             ->paginate($perPage);
 
@@ -98,8 +98,10 @@ class AuctionResultService
                 'approval_status' => 'pending',
             ]));
 
-         
-           // Notify Authoriser
+            // Mark the main record as pending
+            $mainRecord->update(['approval_status' => 'pending']);
+
+            // Notify Authoriser
             $this->notifySelectedAuthoriser($pending);
 
             return $pending;
@@ -131,6 +133,9 @@ class AuctionResultService
                 'approval_status' => 'pending',
             ]);
 
+            // Mark the main record as pending
+            $mainRecord->update(['approval_status' => 'pending']);
+
             // Notify Authoriser
             $this->notifySelectedAuthoriser($pending);
 
@@ -156,26 +161,41 @@ class AuctionResultService
             
             $attributes['approved_by'] = auth()->id();
             $attributes['approved_at'] = now();
+            // Approving means the record is no longer pending
+            $attributes['approval_status'] = 'approved';
 
             switch ($pending->request_type) {
                 case 'create':
                     $attributes['created_by'] = $pending->requested_by;
                     $attributes['status'] = 'Completed'; 
                     $result = AuctionResult::create($attributes);
+                    $this->updateOutstandingValue($pending->security_id, $pending->amount_sold ?? 0);
                     break;
 
                 case 'update':
                     $main = $pending->mainRecord;
                     if ($main) {
+                        // Calculate difference so we only add/subtract the change
+                        $oldSold = $main->amount_sold ?? 0;
+                        $newSold = $pending->amount_sold ?? 0;
+                        $difference = floatval($newSold) - floatval($oldSold);
+
                         $attributes['updated_by'] = $pending->requested_by;
                         $main->update($attributes);
                         $result = $main;
+
+                        if ($difference != 0) {
+                            $this->updateOutstandingValue($pending->security_id ?? $main->security_id, $difference);
+                        }
                     }
                     break;
 
                 case 'delete':
                     $main = $pending->mainRecord;
                     if ($main) {
+                        $oldSold = $main->amount_sold ?? 0;
+                        $this->updateOutstandingValue($main->security_id, -floatval($oldSold));
+                        
                         $main->delete();
                         $result = true;
                     }
@@ -186,9 +206,9 @@ class AuctionResultService
             
             // Notify Requester
             if ($pending->requested_by) {
-                $requester = \App\Models\User::find($pending->requested_by);
-                if ($requester) {
-                    Mail::to($requester->email)->send(new AuctionResultRequestApproved($pending, auth()->user()));
+                $requester = $this->externalUserService->getUserById($pending->requested_by);
+                if ($requester && isset($requester['email'])) {
+                    Mail::to($requester['email'], $requester['name'] ?? null)->send(new AuctionResultRequestApproved($pending, auth()->user()));
                 }
             }
 
@@ -210,11 +230,26 @@ class AuctionResultService
             'rejection_reason' => $reason
         ]);
         
+        // Check if there are other pending requests for the same main record
+        if ($pending->auction_result_id) {
+            $mainRecord = $pending->mainRecord;
+            if ($mainRecord) {
+                $hasOtherPending = \App\Models\PendingAuctionResult::where('auction_result_id', $mainRecord->id)
+                    ->where('id', '!=', $pending->id)
+                    ->where('approval_status', 'pending')
+                    ->exists();
+                
+                if (!$hasOtherPending) {
+                    $mainRecord->update(['approval_status' => 'approved']);
+                }
+            }
+        }
+        
         // Notify Requester
         if ($pending->requested_by) {
-            $requester = \App\Models\User::find($pending->requested_by);
-            if ($requester) {
-                Mail::to($requester->email)->send(new AuctionResultRequestRejected($pending, auth()->user()));
+            $requester = $this->externalUserService->getUserById($pending->requested_by);
+            if ($requester && isset($requester['email'])) {
+                Mail::to($requester['email'], $requester['name'] ?? null)->send(new AuctionResultRequestRejected($pending, auth()->user()));
             }
         }
 
@@ -223,13 +258,31 @@ class AuctionResultService
     protected function notifySelectedAuthoriser(PendingAuctionResult $pending)
     {
         if ($pending->selected_authoriser_id) {
-            // Try to find local user first, then external if needed (though mail needs email)
-            // For now, keeping original logic using App\Models\User as requested, 
-            // but can be switched to ExternalUserService if User model is not sync'd.
-            $authoriser = \App\Models\User::find($pending->selected_authoriser_id);
-            if ($authoriser) {
-                Mail::to($authoriser->email)->send(new AuctionResultRequestPending($pending, auth()->user()));
+            $authoriser = $this->externalUserService->getUserById($pending->selected_authoriser_id);
+            if ($authoriser && isset($authoriser['email'])) {
+                Mail::to($authoriser['email'], $authoriser['name'] ?? null)->send(new AuctionResultRequestPending($pending, auth()->user()));
             }
+        }
+    }
+
+    /**
+     * Updates the Outstanding Value for a given security_id.
+     * Outstanding Value is assumed to be field_id = 15 in SecurityMasterFieldValue
+     */
+    protected function updateOutstandingValue($securityId, $amountToAdd)
+    {
+        if (!$securityId || !$amountToAdd) return;
+
+        $fieldValue = \App\Models\SecurityMasterFieldValue::where('security_master_id', $securityId)
+            ->where('field_id', 15)
+            ->first();
+
+        if ($fieldValue) {
+            $currentValue = floatval(str_replace(',', '', $fieldValue->field_value));
+            $newValue = $currentValue + floatval($amountToAdd);
+            
+            // Format back to 2 decimal places if needed or keep raw float
+            $fieldValue->update(['field_value' => number_format($newValue, 2, '.', '')]);
         }
     }
 }

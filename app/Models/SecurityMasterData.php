@@ -10,6 +10,7 @@ class SecurityMasterData extends Model
 
     protected $fillable = [
         'category_id',
+        'product_id',
         'security_name',
         'status',
         'approval_status',
@@ -27,6 +28,14 @@ class SecurityMasterData extends Model
     public function category()
     {
         return $this->belongsTo(MarketCategory::class, 'category_id');
+    }
+
+    /**
+     * Get the product type
+     */
+    public function productType()
+    {
+        return $this->belongsTo(ProductType::class, 'product_id');
     }
 
     /**
@@ -51,5 +60,16 @@ class SecurityMasterData extends Model
                 'required' => $fieldValue->field->required,
             ];
         });
+    }
+
+    /**
+     * Accessor: gets the security name from field_id 3
+     */
+    public function getSecurityNameAttribute($value)
+    {
+        // If the DB has a hardcoded security_name, it uses that if present, 
+        // but we override it by pulling field_id 3 if available.
+        $field = $this->fieldValues->where('field_id', 3)->first();
+        return $field ? $field->field_value : $value;
     }
 }

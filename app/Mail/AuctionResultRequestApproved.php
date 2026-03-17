@@ -15,11 +15,13 @@ class AuctionResultRequestApproved extends Mailable
 
     public $pending;
     public $approver;
+    public $approverName;
 
     public function __construct(PendingAuctionResult $pending, $approver = null)
     {
         $this->pending = $pending;
         $this->approver = $approver;
+        $this->approverName = $approver ? trim(($approver->firstname ?? '') . ' ' . ($approver->lastname ?? $approver->last_name ?? '')) : 'Authoriser';
     }
 
     public function envelope(): Envelope

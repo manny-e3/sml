@@ -15,14 +15,16 @@ class MarketCategoryRequestApproved extends Mailable
 
     public $pending;
     public $requester;
+    public $recipientName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingMarketCategory $pending, $requester = null)
+    public function __construct(PendingMarketCategory $pending, $requester = null, $recipientName = 'Inputter')
     {
         $this->pending = $pending;
         $this->requester = $requester;
+        $this->recipientName = $recipientName;
     }
 
     /**

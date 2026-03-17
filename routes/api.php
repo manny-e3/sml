@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SecurityController;
+use App\Http\Controllers\Api\Admin\SecurityMasterDataController;
 use App\Http\Controllers\Api\AuctionResultController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\DashboardController;
@@ -31,6 +32,9 @@ Route::prefix('v1')->group(function () {
 
         // Auction Results
         Route::apiResource('auction-results', AuctionResultController::class);
+
+        // Security Master Data
+        Route::apiResource('security-master-data', SecurityMasterDataController::class);
         
         // Search
         Route::get('/search', [SearchController::class, 'search']);
@@ -146,6 +150,14 @@ Route::prefix('v1')->group(function () {
             Route::get('pending-auction-results/{pendingAuctionResult}', [\App\Http\Controllers\Api\AuctionResultController::class, 'showPending']);
             Route::post('pending-auction-results/{pendingAuctionResult}/approve', [\App\Http\Controllers\Api\AuctionResultController::class, 'approve']);
             Route::post('pending-auction-results/{pendingAuctionResult}/reject', [\App\Http\Controllers\Api\AuctionResultController::class, 'reject']);
+
+            // Bond Features & Configurations
+            Route::apiResource('coupon-types', \App\Http\Controllers\Api\Admin\CouponTypeController::class);
+            Route::apiResource('day-count-conventions', \App\Http\Controllers\Api\Admin\DayCountConventionController::class);
+            Route::apiResource('coupon-frequencies', \App\Http\Controllers\Api\Admin\CouponFrequencyController::class);
+            Route::apiResource('option-types', \App\Http\Controllers\Api\Admin\OptionTypeController::class);
+            Route::apiResource('listing-statuses', \App\Http\Controllers\Api\Admin\ListingStatusController::class);
+            Route::apiResource('trading-statuses', \App\Http\Controllers\Api\Admin\TradingStatusController::class);
           
             // Test endpoint for debugging external user service
             Route::get('test-users', [\App\Http\Controllers\Api\Admin\TestUserServiceController::class, 'testUsers']);

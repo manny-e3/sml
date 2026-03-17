@@ -5,6 +5,7 @@
 </head>
 <body>
     <h2>Auction Result Request Rejected</h2>
+    <p>Hello,</p>
     <p>Your request ({{ ucfirst($pending->request_type) }}) for Auction Date: {{ $pending->auction_date->format('Y-m-d') }} has been rejected.</p>
     
     <p><strong>Reason:</strong> {{ $pending->rejection_reason }}</p>

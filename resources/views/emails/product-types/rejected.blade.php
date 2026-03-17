@@ -5,7 +5,7 @@
 </head>
 <body>
     <h2>Product Type Request Rejected</h2>
-    <p>Hello {{ $pending->requester->name ?? 'Inputter' }},</p>
+    <p>Hello {{ $recipientName }},</p>
     
     <p>Your request to <strong>{{ $pending->request_type }}</strong> the Product Type <strong>{{ $pending->name }} ({{ $pending->code }})</strong> has been REJECTED.</p>
     

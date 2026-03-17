@@ -15,6 +15,7 @@ class PendingSecurityMasterData extends Model
     protected $fillable = [
         'security_master_id',
         'category_id',
+        'product_id',
         'security_name',
         'status',
         'fields_data',
@@ -60,5 +61,13 @@ class PendingSecurityMasterData extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(MarketCategory::class, 'category_id')->withTrashed();
+    }
+
+    /**
+     * Get the product type.
+     */
+    public function productType(): BelongsTo
+    {
+        return $this->belongsTo(ProductType::class, 'product_id')->withTrashed();
     }
 }

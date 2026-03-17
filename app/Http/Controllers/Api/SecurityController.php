@@ -8,6 +8,9 @@ use App\Http\Requests\UpdateSecurityRequest;
 use App\Models\Security;
 use App\Models\PendingAction;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use App\Services\SecurityMasterDataService;
+use App\Services\ExternalUserService;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\SecuritiesExport;
@@ -15,30 +18,57 @@ use App\Imports\SecuritiesImport;
 
 class SecurityController extends Controller
 {
+    protected $securityMasterService;
+    protected $externalUserService;
+
+    public function __construct(SecurityMasterDataService $securityMasterService, ExternalUserService $externalUserService)
+    {
+        $this->securityMasterService = $securityMasterService;
+        $this->externalUserService = $externalUserService;
+    }
+
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+   public function index(Request $request): JsonResponse
     {
-        $query = Security::with(['productType', 'creator']);
+        $perPage = $request->get('per_page', 15);
+        $categoryId = $request->get('category_id');
+        
+        $securities = $this->securityMasterService->getAllSecurities($perPage, $categoryId);
+        
+        $users = $this->externalUserService->getAllUsers();
+        
+        $securities->getCollection()->transform(function ($security) use ($users) {
+            $creator = $users->get($security->created_by);
+            $creatorName = $creator ? trim(($creator['firstname'] ?? '') . ' ' . ($creator['lastname'] ?? '')) : null;
 
-        // Filters
-        if ($request->filled('product_type')) {
-            $query->where('product_type_id', $request->product_type);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('issuer')) {
-            $query->where('issuer', 'like', '%' . $request->issuer . '%');
-        }
-
-        // Sort by latest by default
-        $query->latest();
-
-        return response()->json($query->paginate(15));
+            return [
+                'id' => $security->id,
+                'security_name' => $security->security_name,
+                'category' => [
+                    'id' => $security->category->id,
+                    'name' => $security->category->name,
+                ],
+                'product' => $security->productType ? [
+                    'id' => $security->productType->id,
+                    'name' => $security->productType->name,
+                ] : null,
+                'status' => $security->status,
+                'created_by' => $security->created_by,
+                'created_by_name' => $creatorName,
+                'approval_status' => $security->approval_status,
+                'fields' => $security->fieldValues->map(function ($value) {
+                    return [
+                        'field_id' => $value->field_id,
+                        'field_name' => $value->field->field_name ?? null,
+                        'value' => $value->field_value,
+                    ];
+                }),
+            ];
+        });
+        
+        return response()->json($securities);
     }
 
     /**

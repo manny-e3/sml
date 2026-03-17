@@ -16,11 +16,14 @@ class AuctionResultRequestPending extends Mailable
     public $pending;
     public $dashboardUrl;
     public $requester;
+    public $requesterName; // Add this property to store the requester's name
 
     public function __construct(PendingAuctionResult $pending, $requester = null)
     {
         $this->pending = $pending;
         $this->requester = $requester;
+        // Extract and store the requester's name
+        $this->requesterName = $requester ? trim(($requester->firstname ?? '') . ' ' . ($requester->lastname ?? $requester->last_name ?? '')) : 'Unknown';
         $this->dashboardUrl = config('app.frontend_url', config('app.url')) . '/admin/auction-results/pending'; 
     }
 

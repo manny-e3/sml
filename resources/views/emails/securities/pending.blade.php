@@ -5,9 +5,9 @@
 </head>
 <body>
     <h2>New Security Request: {{ ucfirst($pending->request_type) }}</h2>
-    <p>Hello {{ $pending->selectedAuthoriser->firstname ?? 'Authoriser' }},</p>
+    <p>Hello {{ $recipientName }},</p>
     
-    <p>A new Security request has been submitted by {{ $pending->requester->firstname ?? 'Inputter' }} {{ $pending->requester->last_name ?? '' }} and is awaiting your approval.</p>
+    <p>A new Security request has been submitted and is awaiting your approval.</p>
     
     <p><strong>Request Details:</strong></p>
     <ul>

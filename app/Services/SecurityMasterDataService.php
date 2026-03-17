@@ -26,7 +26,7 @@ class SecurityMasterDataService
      */
     public function getPendingRequests(int $perPage = 15)
     {
-        $pending = PendingSecurityMasterData::with(['requester', 'category', 'mainRecord'])
+        $pending = PendingSecurityMasterData::with(['requester', 'category', 'productType', 'mainRecord'])
             ->latest()
             ->paginate($perPage);
 
@@ -53,7 +53,8 @@ class SecurityMasterDataService
         return DB::transaction(function () use ($data) {
             $pending = PendingSecurityMasterData::create([
                 'category_id' => $data['category_id'],
-                'security_name' => $data['security_name'],
+                'product_id' => $data['product_id'],
+                'security_name' => $data['security_name'] ?? null,
                 'status' => $data['status'] ?? 1,
                 'fields_data' => $data['fields'] ?? [],
                 'request_type' => 'create',
@@ -82,11 +83,12 @@ class SecurityMasterDataService
             // Set main record to pending_approval (optional, depending on requirement)
             // But usually we just lock it from other updates? 
             // For now, let's just mark it if we want, or just rely on pending request existence.
-            $security->update(['approval_status' => 'pending_approval']);
+            $security->update(['approval_status' => 'pending']);
 
             $pending = PendingSecurityMasterData::create([
                 'security_master_id' => $security->id,
                 'category_id' => $security->category_id,
+                'product_id' => $data['product_id'] ?? $security->product_id,
                 'security_name' => $data['security_name'] ?? $security->security_name,
                 'status' => $data['status'] ?? $security->status,
                 'fields_data' => $data['fields'] ?? null, // Only store if changing? Or store all?
@@ -109,7 +111,7 @@ class SecurityMasterDataService
     public function deleteRequest(SecurityMasterData $security, array $data)
     {
         return DB::transaction(function () use ($security, $data) {
-            $security->update(['approval_status' => 'pending_approval']);
+            $security->update(['approval_status' => 'pending']);
 
             $pending = PendingSecurityMasterData::create([
                 'security_master_id' => $security->id,
@@ -144,9 +146,10 @@ class SecurityMasterDataService
                 case 'create':
                     $security = SecurityMasterData::create([
                         'category_id' => $pending->category_id,
+                        'product_id' => $pending->product_id,
                         'security_name' => $pending->security_name,
                         'status' => $pending->status,
-                        'approval_status' => 'active',
+                        'approval_status' => 'approved',
                         'created_by' => $pending->requested_by,
                     ]);
 
@@ -168,8 +171,9 @@ class SecurityMasterDataService
                     if ($security) {
                         $security->update([
                             'security_name' => $pending->security_name,
+                            'product_id' => $pending->product_id ?? $security->product_id,
                             'status' => $pending->status,
-                            'approval_status' => 'active',
+                            'approval_status' => 'approved',
                             'updated_by' => $pending->requested_by,
                         ]);
 
@@ -224,7 +228,14 @@ class SecurityMasterDataService
         return DB::transaction(function () use ($pending, $reason) {
             // Revert the main record approval_status
             if (in_array($pending->request_type, ['update', 'delete']) && $pending->mainRecord) {
-                $pending->mainRecord->update(['approval_status' => 'active']);
+                $hasOtherPending = \App\Models\PendingSecurityMasterData::where('security_master_id', $pending->mainRecord->id)
+                    ->where('id', '!=', $pending->id)
+                    ->where('approval_status', 'pending')
+                    ->exists();
+
+                if (!$hasOtherPending) {
+                    $pending->mainRecord->update(['approval_status' => 'approved']);
+                }
             }
 
             $pending->update([
@@ -308,6 +319,7 @@ class SecurityMasterDataService
 
             switch ($fieldDef->field_type) {
                 case 'Int':
+                    if (is_null($value) || $value === '') break;
                     if (!is_numeric($value) || !ctype_digit(strval($value))) {
                         throw ValidationException::withMessages([
                             'fields' => ["The field '{$fieldDef->field_name}' must be an integer."]
@@ -316,9 +328,37 @@ class SecurityMasterDataService
                     break;
                 case 'Float':
                 case 'Decimal':
+                    if (is_null($value) || $value === '') break;
                     if (!is_numeric($value)) {
                         throw ValidationException::withMessages([
                             'fields' => ["The field '{$fieldDef->field_name}' must be a number."]
+                        ]);
+                    }
+                    break;
+                case 'Text':
+                    // Heuristic: If it's a 'Text' field but has 'Date' in the name, validate as date format if not empty
+                    if (stripos($fieldDef->field_name, 'Date') !== false && !empty($value)) {
+                        try {
+                            \Carbon\Carbon::parse($value);
+                        } catch (\Exception $e) {
+                            throw ValidationException::withMessages([
+                                'fields' => ["The field '{$fieldDef->field_name}' must be a valid date format."]
+                            ]);
+                        }
+                    }
+                    if (is_array($value) || is_object($value)) {
+                        throw ValidationException::withMessages([
+                            'fields' => ["The field '{$fieldDef->field_name}' must be text."]
+                        ]);
+                    }
+                    break;
+                case 'Date':
+                    if (is_null($value) || $value === '') break;
+                    try {
+                        \Carbon\Carbon::parse($value);
+                    } catch (\Exception $e) {
+                        throw ValidationException::withMessages([
+                            'fields' => ["The field '{$fieldDef->field_name}' must be a valid date."]
                         ]);
                     }
                     break;

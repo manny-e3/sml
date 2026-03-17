@@ -15,13 +15,15 @@ class SecurityTypeRequestPending extends Mailable
 
     public $pending;
     public $dashboardUrl;
+    public $recipientName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingSecurityType $pending)
+    public function __construct(PendingSecurityType $pending, $recipientName = 'Authoriser')
     {
         $this->pending = $pending;
+        $this->recipientName = $recipientName;
         $this->dashboardUrl = config('app.frontend_url', config('app.url')) . '/admin/security-types/pending'; 
     }
 

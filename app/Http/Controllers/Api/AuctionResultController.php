@@ -27,7 +27,7 @@ class AuctionResultController extends Controller
     // LIST EXISTING
     public function index(Request $request)
     {
-        $query = AuctionResult::with('security');
+        $query = AuctionResult::with(['security.fieldValues', 'security.productType']);
 
         if ($request->filled('security_id')) {
             $query->where('security_id', $request->security_id);
@@ -39,6 +39,13 @@ class AuctionResultController extends Controller
 
         $results = $query->latest('auction_date')->paginate(15);
         $this->userService->enrichWithUsers($results, ['created_by' => 'creator', 'authoriser_id' => 'authoriser']);
+
+        $results->getCollection()->transform(function ($item) {
+            $item->security_name = $item->security->security_name ?? null;
+            $item->product_name = $item->security->productType->name ?? null;
+            $item->makeHidden(['security']);
+            return $item;
+        });
 
         return response()->json($results);
     }
@@ -65,7 +72,11 @@ class AuctionResultController extends Controller
     // SHOW EXISTING
     public function show(AuctionResult $auctionResult)
     {
-        return response()->json($auctionResult->load('security', 'creator'));
+        $auctionResult->load(['security.fieldValues', 'security.productType', 'creator']);
+        $auctionResult->security_name = $auctionResult->security->security_name ?? null;
+        $auctionResult->product_name = $auctionResult->security->productType->name ?? null;
+        $auctionResult->makeHidden(['security']);
+        return response()->json($auctionResult);
     }
 
     // UPDATE REQUEST
@@ -139,18 +150,39 @@ class AuctionResultController extends Controller
         ]);
 
         try {
-            \Maatwebsite\Excel\Facades\Excel::import(
-                new \App\Imports\AuctionResultImport(
-                    $this->service,
-                    $request->created_by,
-                    $request->authoriser_id
-                ),
-                $request->file('file')
+            $import = new \App\Imports\AuctionResultImport(
+                $this->service,
+                $request->created_by,
+                $request->authoriser_id
             );
 
-            return response()->json([
-                'message' => 'Bulk upload processed. Valid records submitted for approval.'
-            ]);
+            \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
+
+            $errors = $import->getErrors();
+            $failures = $import->failures();
+            
+            foreach ($failures as $failure) {
+                $row = $failure->row();
+                $attribute = $failure->attribute();
+                $messages = implode(', ', $failure->errors());
+                $errors[] = "Row {$row} [{$attribute}]: {$messages}";
+            }
+
+            $counts = $import->getCounts();
+
+            $response = [
+                'success_count' => $counts['success'],
+                'error_count' => $counts['errors'] + count($failures),
+                'errors' => $errors,
+            ];
+
+            if (empty($errors)) {
+                $response['message'] = 'Bulk upload processed. Valid records submitted for approval.';
+                return response()->json($response);  
+            }
+
+            $response['message'] = 'Upload failed due to validation errors. Please check the errors below.';
+            return response()->json($response, 422); 
         } catch (\Exception $e) {
             return response()->json(['message' => 'Import failed: ' . $e->getMessage()], 500);
         }
@@ -160,12 +192,25 @@ class AuctionResultController extends Controller
     public function pending(Request $request)
     {
         $results = $this->service->getPendingRequests($request->get('per_page', 15));
+        
+        $results->getCollection()->transform(function ($item) {
+            $item->security_name = $item->security->security_name ?? null;
+            $item->product_name = $item->security->productType->name ?? null;
+            $item->makeHidden(['security']);
+            return $item;
+        });
+
         return response()->json($results);
     }
 
     public function showPending(PendingAuctionResult $pendingAuctionResult)
     {
-        return response()->json($pendingAuctionResult->load('security', 'requester', 'mainRecord'));
+        $pendingAuctionResult->load(['security.fieldValues', 'security.productType', 'requester', 'mainRecord']);
+        $pendingAuctionResult->security_name = $pendingAuctionResult->security->security_name ?? null;
+        $pendingAuctionResult->product_name = $pendingAuctionResult->security->productType->name ?? null;
+        $pendingAuctionResult->makeHidden(['security']);
+
+        return response()->json($pendingAuctionResult);
     }
 
     public function approve(PendingAuctionResult $pendingAuctionResult)

@@ -39,8 +39,7 @@ class SecurityTypeService
      */
     public function getPendingRequests(int $perPage = 15): LengthAwarePaginator
     {
-        $pending = PendingSecurityType::where('approval_status', 'pending')
-            ->with(['requester', 'selectedAuthoriser', 'securityType'])
+        $pending = PendingSecurityType::with(['requester', 'selectedAuthoriser', 'securityType'])
             ->latest()
             ->paginate($perPage);
 
@@ -216,7 +215,8 @@ class SecurityTypeService
     {
         $authoriser = $this->externalUserService->getUserById($pending->selected_authoriser_id);
         if ($authoriser && isset($authoriser['email'])) {
-             Mail::to($authoriser['email'])->send(new \App\Mail\SecurityTypeRequestPending($pending));
+             Mail::to($authoriser['email'], $authoriser['name'] ?? null)
+                ->send(new \App\Mail\SecurityTypeRequestPending($pending, $authoriser['name'] ?? 'Authoriser'));
         }
     }
 
@@ -232,9 +232,11 @@ class SecurityTypeService
         }
 
         if ($status === 'approved') {
-            Mail::to($requester['email'])->send(new \App\Mail\SecurityTypeRequestApproved($pending));
+            Mail::to($requester['email'], $requester['name'] ?? null)
+                ->send(new \App\Mail\SecurityTypeRequestApproved($pending, $requester['name'] ?? 'Inputter'));
         } elseif ($status === 'rejected') {
-            Mail::to($requester['email'])->send(new \App\Mail\SecurityTypeRequestRejected($pending, $pending->rejection_reason));
+            Mail::to($requester['email'], $requester['name'] ?? null)
+                ->send(new \App\Mail\SecurityTypeRequestRejected($pending, $pending->rejection_reason, $requester['name'] ?? 'Inputter'));
         }
     }
 }

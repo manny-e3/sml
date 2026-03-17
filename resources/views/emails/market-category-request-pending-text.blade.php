@@ -1,6 +1,6 @@
-Hello Authoriser,
+Hello {{ $recipientName }},
 
-A new Market Category Request ({{ strtoupper($pending->request_type) }}) has been submitted by {{ $pending->requester->firstname ?? 'User' }}.
+A new Market Category Request ({{ strtoupper($pending->request_type) }}) has been submitted by {{ $requester['name'] ?? 'Inputter' }}.
 
 Details:
 Type: {{ strtoupper($pending->request_type) }}

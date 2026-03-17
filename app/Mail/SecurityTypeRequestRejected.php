@@ -15,14 +15,16 @@ class SecurityTypeRequestRejected extends Mailable
 
     public $pending;
     public $reason;
+    public $recipientName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingSecurityType $pending, string $reason)
+    public function __construct(PendingSecurityType $pending, string $reason, $recipientName = 'Inputter')
     {
         $this->pending = $pending;
         $this->reason = $reason;
+        $this->recipientName = $recipientName;
     }
 
     /**

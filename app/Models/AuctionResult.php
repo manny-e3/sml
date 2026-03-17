@@ -33,6 +33,7 @@ class AuctionResult extends Model implements Auditable
         'subscription_level',
         'auction_type',
         'status',
+        'approval_status',
         'remarks',
         'created_by',
         'updated_by',
@@ -65,6 +66,11 @@ class AuctionResult extends Model implements Auditable
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function pendingRequests()
+    {
+        return $this->hasMany(PendingAuctionResult::class, 'auction_result_id');
     }
 
     public function calculateRatios()

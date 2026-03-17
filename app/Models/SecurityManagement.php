@@ -10,6 +10,7 @@ class SecurityManagement extends Model
 
     protected $fillable = [
         'category_id',
+        'product_id',
         'field_name',
         'field_type',
         'required',
@@ -27,5 +28,13 @@ class SecurityManagement extends Model
     public function category()
     {
         return $this->belongsTo(MarketCategory::class, 'category_id');
+    }
+
+    /**
+     * Get the product type associated with the security management field.
+     */
+    public function productType()
+    {
+        return $this->belongsTo(ProductType::class, 'product_id');
     }
 }

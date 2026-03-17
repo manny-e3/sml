@@ -14,13 +14,15 @@ class ProductTypeRequestApproved extends Mailable
     use Queueable, SerializesModels;
 
     public $pending;
+    public $recipientName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PendingProductType $pending)
+    public function __construct(PendingProductType $pending, $recipientName = 'Inputter')
     {
         $this->pending = $pending;
+        $this->recipientName = $recipientName;
     }
 
     /**

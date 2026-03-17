@@ -14,7 +14,7 @@ class ExternalUserService
     {
         // Using the URL provided by the user. 
         // In a real scenario, this should be in config/services.php
-        $this->baseUrl = 'http://10.10.66.15:81/authService/api/apps/3/users/stateless';
+        $this->baseUrl = 'https://adgdev.fmdqgroup.com/authService/api/apps/3/users/stateless';
     }
 
     /**
@@ -32,10 +32,12 @@ class ExternalUserService
 
             do {
                 try {
-                    $response = Http::timeout(5)->get($this->baseUrl, [
-                        'page' => $page,
-                        'per_page' => 100 // Try to fetch more per page to reduce requests
-                    ]);
+                    $response = Http::timeout(5)
+                        ->withBasicAuth('fmdq_admin', 'golddoor2025_secure!')
+                        ->get($this->baseUrl, [
+                            'page' => $page,
+                            'per_page' => 100 
+                        ]);
 
                     if ($response->successful()) {
                         $data = $response->json('data');
@@ -76,7 +78,13 @@ class ExternalUserService
     public function getUserById(int $id): ?array
     {
         $users = $this->getAllUsers();
-        return $users->get($id);
+        $user = $users->get($id);
+        
+        if ($user && !isset($user['name'])) {
+            $user['name'] = trim(($user['firstname'] ?? '') . ' ' . ($user['lastname'] ?? ''));
+        }
+        
+        return $user;
     }
 
     /**

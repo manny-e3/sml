@@ -15,11 +15,13 @@ class AuctionResultRequestRejected extends Mailable
 
     public $pending;
     public $rejector;
+    public $rejectorName;
 
     public function __construct(PendingAuctionResult $pending, $rejector = null)
     {
         $this->pending = $pending;
         $this->rejector = $rejector;
+        $this->rejectorName = $rejector ? trim(($rejector->firstname ?? '') . ' ' . ($rejector->lastname ?? $rejector->last_name ?? '')) : 'Authoriser';
     }
 
     public function envelope(): Envelope
